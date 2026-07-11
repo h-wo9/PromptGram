@@ -91,18 +91,31 @@ function onCopied() {
       <button
         class="flex items-center gap-1 transition-colors"
         :class="prompt.is_liked ? 'text-red-400' : 'hover:text-red-400'"
+        :aria-label="prompt.is_liked ? '좋아요 취소' : '좋아요'"
         @click="emit('like', prompt)"
       >
-        <span>{{ prompt.is_liked ? '♥' : '♡' }}</span>{{ prompt.like_count }}
+        <svg class="w-4 h-4" viewBox="0 0 24 24" :fill="prompt.is_liked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+        </svg>
+        {{ prompt.like_count }}
       </button>
       <button
         class="flex items-center gap-1 transition-colors"
         :class="prompt.is_bookmarked ? 'text-accent' : 'hover:text-accent'"
+        :aria-label="prompt.is_bookmarked ? '스크랩 취소' : '스크랩'"
         @click="emit('bookmark', prompt)"
       >
-        <span>{{ prompt.is_bookmarked ? '★' : '☆' }}</span>{{ prompt.bookmark_count }}
+        <svg class="w-4 h-4" viewBox="0 0 24 24" :fill="prompt.is_bookmarked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c.1.128.176.27.223.42.047.15.07.308.066.466v16.542a.75.75 0 0 1-1.184.611L12 18.443l-4.698 3.918a.75.75 0 0 1-1.184-.61V4.207c-.005-.158.019-.316.066-.466.047-.15.123-.292.223-.42C6.85 2.75 7.4 2.5 8 2.5h8c.6 0 1.15.25 1.593.822Z" />
+        </svg>
+        {{ prompt.bookmark_count }}
       </button>
-      <span class="flex items-center gap-1" title="복사된 횟수">⧉ {{ prompt.copy_count }}</span>
+      <span class="flex items-center gap-1" title="복사된 횟수">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+        </svg>
+        {{ prompt.copy_count }}
+      </span>
       <span class="flex-1"></span>
       <template v-if="editable">
         <button class="hover:text-white" @click="emit('edit', prompt)">수정</button>
