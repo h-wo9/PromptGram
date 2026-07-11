@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+sqlalchemy[asyncio]
+asyncpg
+pydantic
+pydantic-settings
+email-validator
+alembic
+passlib
+bcrypt==4.0.1
+PyJWT
+pytest
+pytest-asyncio
+httpx
+aiosqlite
+greenlet

@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: promptgram-db
+    environment:
+      POSTGRES_USER: promptgram
+      POSTGRES_PASSWORD: promptgram
+      POSTGRES_DB: promptgram
+    ports:
+      - "55432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
