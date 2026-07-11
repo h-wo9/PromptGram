@@ -15,6 +15,7 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
+const searchInput = ref('')
 const items = ref([])
 const nextCursor = ref(null)
 const sort = ref('latest')
@@ -92,6 +93,12 @@ async function onCopied(prompt) {
   }
 }
 
+function searchTag() {
+  const t = searchInput.value.replace(/^#/, '').trim()
+  if (t) tag.value = t
+  searchInput.value = ''
+}
+
 async function logout() {
   await auth.logout()
   router.push({ name: 'landing' })
@@ -130,6 +137,14 @@ async function logout() {
         >
           #{{ tag }} ✕
         </button>
+
+        <form class="hidden sm:block" @submit.prevent="searchTag">
+          <input
+            v-model="searchInput"
+            placeholder="#태그 검색"
+            class="w-36 rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs focus:border-accent focus:outline-none focus:w-48 transition-all"
+          />
+        </form>
 
         <span class="flex-1"></span>
 
