@@ -1,12 +1,17 @@
-from fastapi import APIRouter, HTTPException, status
+from typing import Literal
+
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import CurrentUser, DbDep, OptionalUser
 from app.crud import prompt as prompt_crud
 from app.models import Prompt, User
-from app.schemas.prompt import PromptCreate, PromptOut, PromptUpdate
+from app.schemas.prompt import FeedOut, PromptCreate, PromptOut, PromptUpdate
+from app.services.feed_cursor import decode_cursor, encode_cursor
 from app.services.variables import parse_variables
 
 router = APIRouter(prefix="/prompts", tags=["prompts"])
+
+FEED_PAGE_SIZE = 12
 
 
 def to_prompt_out(
@@ -58,6 +63,30 @@ async def create_prompt(body: PromptCreate, user: CurrentUser, db: DbDep):
     return to_prompt_out(prompt)
 
 
+@router.get("", response_model=FeedOut)
+async def get_feed(
+    db: DbDep,
+    user: OptionalUser,
+    cursor: str | None = Query(default=None),
+    sort: Literal["latest", "popular"] = Query(default="latest"),
+    tag: str | None = Query(default=None, max_length=50),
+):
+    cursor_key = decode_cursor(cursor, sort) if cursor else None
+    prompts = await prompt_crud.get_feed(
+        db, sort=sort, tag=tag, cursor_key=cursor_key, limit=FEED_PAGE_SIZE
+    )
+    liked, bookmarked = await prompt_crud.get_interaction_ids(
+        db, user.id if user else None, [p.id for p in prompts]
+    )
+    next_cursor = (
+        encode_cursor(prompts[-1], sort) if len(prompts) == FEED_PAGE_SIZE else None
+    )
+    return FeedOut(
+        items=[to_prompt_out(p, liked, bookmarked) for p in prompts],
+        next_cursor=next_cursor,
+    )
+
+
 @router.get("/{prompt_id}", response_model=PromptOut)
 async def get_prompt(prompt_id: int, db: DbDep, user: OptionalUser):
     prompt = await prompt_crud.get_prompt(db, prompt_id)
@@ -88,3 +117,38 @@ async def delete_prompt(prompt_id: int, user: CurrentUser, db: DbDep):
     prompt = _get_owned(await prompt_crud.get_prompt(db, prompt_id), user)
     await db.delete(prompt)
     await db.commit()
+
+
+async def _get_visible(db, prompt_id: int, user: User | None) -> Prompt:
+    prompt = await prompt_crud.get_prompt(db, prompt_id)
+    if prompt is None or (
+        not prompt.is_public and (user is None or prompt.user_id != user.id)
+    ):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Prompt not found")
+    return prompt
+
+
+@router.post("/{prompt_id}/like", response_model=PromptOut)
+async def like_prompt(prompt_id: int, user: CurrentUser, db: DbDep):
+    prompt = await _get_visible(db, prompt_id, user)
+    await prompt_crud.toggle_like(db, user.id, prompt)
+    liked, bookmarked = await prompt_crud.get_interaction_ids(db, user.id, [prompt.id])
+    return to_prompt_out(prompt, liked, bookmarked)
+
+
+@router.post("/{prompt_id}/bookmark", response_model=PromptOut)
+async def bookmark_prompt(prompt_id: int, user: CurrentUser, db: DbDep):
+    prompt = await _get_visible(db, prompt_id, user)
+    await prompt_crud.toggle_bookmark(db, user.id, prompt)
+    liked, bookmarked = await prompt_crud.get_interaction_ids(db, user.id, [prompt.id])
+    return to_prompt_out(prompt, liked, bookmarked)
+
+
+@router.post("/{prompt_id}/copy", response_model=PromptOut)
+async def copy_prompt(prompt_id: int, db: DbDep, user: OptionalUser):
+    prompt = await _get_visible(db, prompt_id, user)
+    await prompt_crud.increase_copy_count(db, prompt)
+    liked, bookmarked = await prompt_crud.get_interaction_ids(
+        db, user.id if user else None, [prompt.id]
+    )
+    return to_prompt_out(prompt, liked, bookmarked)
