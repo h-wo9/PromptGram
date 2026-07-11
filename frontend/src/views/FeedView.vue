@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import {
@@ -44,6 +44,12 @@ async function loadMore(reset = false) {
     if (!data.next_cursor) done.value = true
   } finally {
     loading.value = false
+    // sentinel이 여전히 화면 안이면 re-observe로 초기 콜백을 다시 받아 이어서 로드
+    await nextTick()
+    if (!done.value && observer && sentinel.value) {
+      observer.unobserve(sentinel.value)
+      observer.observe(sentinel.value)
+    }
   }
 }
 
