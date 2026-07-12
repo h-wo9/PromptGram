@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { suggestTags, tunePrompt } from '../api/ai'
 import { createPrompt, getPrompt, updatePrompt } from '../api/prompts'
 import { parseVariables } from '../utils/variables'
 
@@ -18,6 +19,61 @@ const error = ref('')
 const loading = ref(false)
 
 const variables = computed(() => parseVariables(promptText.value))
+
+// ── AI 다듬기 (개선 '제안' — 정답 아님) ──
+const tuning = ref(false)
+const tuneResult = ref(null) // { before, improved_prompt, reasons }
+const aiError = ref('')
+
+async function runTune() {
+  if (promptText.value.trim().length < 5) return
+  aiError.value = ''
+  tuning.value = true
+  try {
+    const data = await tunePrompt(promptText.value)
+    tuneResult.value = { before: promptText.value, ...data }
+  } catch (e) {
+    aiError.value = e.response?.status === 429
+      ? 'AI 요청이 너무 잦아요. 잠시 후 다시 시도해주세요.'
+      : 'AI 다듬기에 실패했어요. 잠시 후 다시 시도해주세요.'
+  } finally {
+    tuning.value = false
+  }
+}
+
+function applyTune() {
+  promptText.value = tuneResult.value.improved_prompt
+  tuneResult.value = null
+}
+
+// ── AI 태그 추천: chip을 눌러 선택 ──
+const suggesting = ref(false)
+const suggestedTags = ref([])
+
+async function runSuggestTags() {
+  if (promptText.value.trim().length < 5) return
+  aiError.value = ''
+  suggesting.value = true
+  try {
+    const data = await suggestTags(promptText.value)
+    suggestedTags.value = data.tags
+  } catch (e) {
+    aiError.value = e.response?.status === 429
+      ? 'AI 요청이 너무 잦아요. 잠시 후 다시 시도해주세요.'
+      : '태그 추천에 실패했어요. 잠시 후 다시 시도해주세요.'
+  } finally {
+    suggesting.value = false
+  }
+}
+
+function toggleSuggestedTag(tag) {
+  const current = tags.value
+  if (current.includes(tag)) {
+    tagInput.value = current.filter((t) => t !== tag).map((t) => `#${t}`).join(' ')
+  } else {
+    tagInput.value = [...current, tag].map((t) => `#${t}`).join(' ')
+  }
+}
 const tags = computed(() =>
   tagInput.value
     .split(/[,\s]+/)
@@ -94,6 +150,76 @@ async function submit() {
           >
             [{{ v }}]
           </span>
+        </div>
+
+        <div class="mt-2 flex gap-2">
+          <button
+            type="button"
+            :disabled="tuning || promptText.trim().length < 5"
+            class="rounded-lg border border-accent/50 text-accent hover:bg-accent hover:text-white transition-colors px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
+            @click="runTune"
+          >
+            {{ tuning ? 'AI가 다듬는 중…' : '✦ AI 다듬기' }}
+          </button>
+          <button
+            type="button"
+            :disabled="suggesting || promptText.trim().length < 5"
+            class="rounded-lg border border-white/20 text-gray-300 hover:border-accent hover:text-accent transition-colors px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
+            @click="runSuggestTags"
+          >
+            {{ suggesting ? '태그 추천 중…' : '태그 추천' }}
+          </button>
+        </div>
+        <p v-if="aiError" class="mt-2 text-xs text-red-400">{{ aiError }}</p>
+
+        <!-- AI 개선 제안 (before / after + 이유) -->
+        <div
+          v-if="tuneResult"
+          class="mt-3 rounded-xl border border-accent/30 bg-accent/5 p-4 space-y-3"
+        >
+          <p class="text-xs font-semibold text-accent">AI 개선 제안 — 정답이 아닌 제안이에요</p>
+          <div class="grid sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <p class="text-gray-500 mb-1">Before</p>
+              <p class="whitespace-pre-wrap break-words text-gray-400 rounded-lg bg-white/5 p-2.5">{{ tuneResult.before }}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 mb-1">After (제안)</p>
+              <p class="whitespace-pre-wrap break-words text-gray-100 rounded-lg bg-white/5 p-2.5">{{ tuneResult.improved_prompt }}</p>
+            </div>
+          </div>
+          <ul class="text-xs text-gray-400 space-y-1 list-disc list-inside">
+            <li v-for="(r, i) in tuneResult.reasons" :key="i">{{ r }}</li>
+          </ul>
+          <div class="flex gap-2 justify-end">
+            <button type="button" class="px-3 py-1.5 text-xs text-gray-400 hover:text-white" @click="tuneResult = null">
+              닫기
+            </button>
+            <button
+              type="button"
+              class="rounded-lg bg-accent hover:bg-blue-500 transition-colors px-3 py-1.5 text-xs font-semibold"
+              @click="applyTune"
+            >
+              제안 적용
+            </button>
+          </div>
+        </div>
+
+        <!-- AI 추천 태그 chip -->
+        <div v-if="suggestedTags.length" class="mt-3 flex flex-wrap items-center gap-2">
+          <span class="text-xs text-gray-400">추천 태그 (눌러서 선택):</span>
+          <button
+            v-for="t in suggestedTags"
+            :key="t"
+            type="button"
+            class="rounded-full px-2.5 py-0.5 text-xs border transition-colors"
+            :class="tags.includes(t)
+              ? 'bg-accent text-white border-accent'
+              : 'bg-white/5 text-gray-300 border-white/15 hover:border-accent hover:text-accent'"
+            @click="toggleSuggestedTag(t)"
+          >
+            #{{ t }}
+          </button>
         </div>
       </div>
       <textarea

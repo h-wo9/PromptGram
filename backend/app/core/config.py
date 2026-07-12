@@ -12,8 +12,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 14
     CORS_ORIGINS: str = "http://localhost:5173"
-    LLM_PROVIDER: str = "ollama"
     GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-3-flash"
 
     @property
     def cors_origins_list(self) -> list[str]:
