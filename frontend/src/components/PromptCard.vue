@@ -1,5 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
+import ShareCard from './ShareCard.vue'
 import VariableFillPanel from './VariableFillPanel.vue'
 
 const props = defineProps({
@@ -30,6 +31,30 @@ function onCopied() {
   justCopied.value = true
   setTimeout(() => (justCopied.value = false), 1500)
   emit('copied', props.prompt)
+}
+
+// 카드 이미지 다운로드: 공유용 ShareCard를 화면 밖에 렌더해 html2canvas로 캡처
+const capturing = ref(false)
+const shareEl = ref(null)
+
+async function downloadImage() {
+  if (capturing.value) return
+  capturing.value = true
+  try {
+    await nextTick()
+    await document.fonts.ready
+    const { default: html2canvas } = await import('html2canvas')
+    const canvas = await html2canvas(shareEl.value, {
+      backgroundColor: '#0A0A0A',
+      scale: 2,
+    })
+    const a = document.createElement('a')
+    a.href = canvas.toDataURL('image/png')
+    a.download = `promptgram-${props.prompt.id}.png`
+    a.click()
+  } finally {
+    capturing.value = false
+  }
 }
 </script>
 
@@ -117,6 +142,17 @@ function onCopied() {
         {{ prompt.copy_count }}
       </span>
       <span class="flex-1"></span>
+      <button
+        class="transition-colors hover:text-white"
+        :aria-label="capturing ? '이미지 생성 중' : '카드 이미지 저장'"
+        title="카드 이미지 저장"
+        :disabled="capturing"
+        @click="downloadImage"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+        </svg>
+      </button>
       <template v-if="editable">
         <button class="hover:text-white" @click="emit('edit', prompt)">수정</button>
         <button class="hover:text-red-400" @click="emit('remove', prompt)">삭제</button>
@@ -135,6 +171,13 @@ function onCopied() {
         :variables="prompt.variables"
         @copied="onCopied"
       />
+    </div>
+
+    <!-- 캡처용 오프스크린 공유 카드 -->
+    <div v-if="capturing" aria-hidden="true" class="fixed top-0 -left-[9999px]">
+      <div ref="shareEl">
+        <ShareCard :prompt="prompt" />
+      </div>
     </div>
   </article>
 </template>
