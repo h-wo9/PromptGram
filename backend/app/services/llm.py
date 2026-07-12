@@ -38,11 +38,16 @@ class GeminiProvider(LLMProvider):
     async def generate(self, prompt: str) -> str:
         url = self.API_URL.format(model=self._model)
         body = {"contents": [{"parts": [{"text": prompt}]}]}
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=60) as client:
             for attempt in range(self.MAX_RETRIES + 1):
-                res = await client.post(
-                    url, json=body, headers={"x-goog-api-key": self._api_key}
-                )
+                try:
+                    res = await client.post(
+                        url, json=body, headers={"x-goog-api-key": self._api_key}
+                    )
+                except httpx.TimeoutException:
+                    raise HTTPException(
+                        status.HTTP_504_GATEWAY_TIMEOUT, "LLM request timed out"
+                    )
                 if res.status_code == 429 and attempt < self.MAX_RETRIES:
                     await asyncio.sleep(2**attempt + random.random())
                     continue
