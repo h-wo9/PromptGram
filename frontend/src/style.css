@@ -14,3 +14,15 @@ body {
   outline: 2px solid #0070f3;
   outline-offset: 2px;
 }
+
+@layer components {
+  /* 랜딩 CTA와 톤을 맞춘 blue→violet 그라데이션 버튼 */
+  .btn-grad {
+    background: linear-gradient(115deg, #0070f3, #7c3aed 130%);
+    box-shadow: 0 0 14px rgba(80, 90, 245, 0.25);
+    transition: box-shadow 0.3s ease;
+  }
+  .btn-grad:hover {
+    box-shadow: 0 0 22px rgba(100, 80, 250, 0.45);
+  }
+}

@@ -10,6 +10,7 @@ import {
   toggleBookmark,
   toggleLike,
 } from '../api/prompts'
+import AuroraBackground from '../components/AuroraBackground.vue'
 import MasonryGrid from '../components/MasonryGrid.vue'
 import PromptCard from '../components/PromptCard.vue'
 
@@ -96,6 +97,7 @@ async function logout() {
 
 <template>
   <div class="min-h-screen">
+    <AuroraBackground />
     <header class="sticky top-0 z-20 border-b border-white/10 bg-night/80 backdrop-blur-xl">
       <div class="max-w-6xl mx-auto px-4 h-14 flex items-center gap-4">
         <router-link to="/feed" class="text-lg font-extrabold tracking-tight">
@@ -104,7 +106,7 @@ async function logout() {
         <span class="flex-1"></span>
         <router-link
           to="/write"
-          class="rounded-lg bg-accent hover:bg-blue-500 transition-colors px-3.5 py-1.5 text-sm font-semibold"
+          class="btn-grad rounded-lg px-3.5 py-1.5 text-sm font-semibold text-white"
         >
           + 글쓰기
         </router-link>
@@ -112,9 +114,9 @@ async function logout() {
       </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 py-8">
+    <main class="relative z-10 max-w-6xl mx-auto px-4 py-8">
       <!-- 프로필 -->
-      <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+      <section class="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm p-6 shadow-[0_12px_50px_rgba(40,60,180,0.1)]">
         <div v-if="!editingProfile" class="flex items-center gap-4">
           <img
             v-if="auth.user?.profile_image_url"
@@ -124,7 +126,7 @@ async function logout() {
           />
           <div
             v-else
-            class="w-16 h-16 rounded-full bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center text-xl font-bold"
+            class="w-16 h-16 rounded-full bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center text-xl font-bold shadow-[0_0_22px_rgba(80,90,245,0.4)]"
           >
             {{ auth.user?.nickname?.[0] ?? '?' }}
           </div>

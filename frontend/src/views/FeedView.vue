@@ -8,6 +8,7 @@ import {
   toggleBookmark,
   toggleLike,
 } from '../api/prompts'
+import AuroraBackground from '../components/AuroraBackground.vue'
 import MasonryGrid from '../components/MasonryGrid.vue'
 import PromptCard from '../components/PromptCard.vue'
 
@@ -121,6 +122,7 @@ async function logout() {
 
 <template>
   <div class="min-h-screen">
+    <AuroraBackground />
     <header
       class="sticky top-0 z-20 border-b border-white/10 bg-night/80 backdrop-blur-xl"
     >
@@ -131,7 +133,7 @@ async function logout() {
 
         <div class="relative grid grid-cols-2 rounded-lg bg-white/5 p-0.5 text-xs font-medium">
           <div
-            class="absolute inset-y-0.5 left-0.5 w-[calc(50%-0.125rem)] rounded-md bg-accent transition-transform duration-300 ease-out"
+            class="absolute inset-y-0.5 left-0.5 w-[calc(50%-0.125rem)] rounded-md bg-gradient-to-r from-accent to-violet-600 transition-transform duration-300 ease-out"
             :class="sort === 'popular' ? 'translate-x-full' : ''"
             aria-hidden="true"
           ></div>
@@ -172,7 +174,7 @@ async function logout() {
         <template v-if="auth.isLoggedIn">
           <router-link
             to="/write"
-            class="rounded-lg bg-accent hover:bg-blue-500 transition-colors px-3.5 py-1.5 text-sm font-semibold"
+            class="btn-grad rounded-lg px-3.5 py-1.5 text-sm font-semibold text-white"
           >
             + 글쓰기
           </router-link>
@@ -193,7 +195,7 @@ async function logout() {
       </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 py-6">
+    <main class="relative z-10 max-w-6xl mx-auto px-4 py-6">
       <transition name="feed-swap" mode="out-in">
         <MasonryGrid :key="feedVersion" :items="items" v-slot="{ item }">
           <PromptCard
