@@ -10,10 +10,11 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(prompts.router)
 
+# cookie를 쓰지 않으므로 credentials 불필요 (refresh는 localStorage + request body)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

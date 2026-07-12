@@ -1,29 +1,37 @@
 import { defineStore } from 'pinia'
-import api, { setAccessToken } from '../api/client'
+import api, {
+  clearTokens,
+  getRefreshToken,
+  refreshTokens,
+  setAccessToken,
+  setRefreshToken,
+} from '../api/client'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
-    accessToken: null,
+    accessToken: null, // access는 메모리에만 (localStorage 금지)
     sessionChecked: false,
   }),
   getters: {
     isLoggedIn: (s) => !!s.accessToken,
   },
   actions: {
-    _setToken(token) {
-      this.accessToken = token
-      setAccessToken(token)
+    _setTokens(access, refresh) {
+      this.accessToken = access
+      setAccessToken(access)
+      if (refresh !== undefined) setRefreshToken(refresh)
     },
     async ensureSession() {
       if (this.sessionChecked || this.accessToken) return
       this.sessionChecked = true
+      if (!getRefreshToken()) return
       try {
-        const { data } = await api.post('/auth/refresh')
-        this._setToken(data.access_token)
+        const data = await refreshTokens()
+        this.accessToken = data.access_token
         await this.fetchMe()
       } catch {
-        /* not logged in */
+        clearTokens()
       }
     },
     async signup(payload) {
@@ -32,7 +40,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async login(payload) {
       const { data } = await api.post('/auth/login', payload)
-      this._setToken(data.access_token)
+      this._setTokens(data.access_token, data.refresh_token)
       await this.fetchMe()
     },
     async fetchMe() {
@@ -44,13 +52,17 @@ export const useAuthStore = defineStore('auth', {
       this.user = data
     },
     async logout() {
-      try {
-        await api.post('/auth/logout')
-      } catch {
-        /* ignore */
+      const refresh = getRefreshToken()
+      if (refresh) {
+        try {
+          await api.post('/auth/logout', { refresh_token: refresh })
+        } catch {
+          /* revoke 실패해도 로컬은 정리 */
+        }
       }
-      this._setToken(null)
+      this.accessToken = null
       this.user = null
+      clearTokens()
     },
   },
 })

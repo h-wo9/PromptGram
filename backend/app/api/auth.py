@@ -1,31 +1,12 @@
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import DbDep
-from app.core.config import settings
-from app.core.security import (
-    REFRESH_COOKIE_NAME,
-    create_access_token,
-    create_refresh_token,
-    decode_token,
-    hash_password,
-    verify_password,
-)
+from app.core.security import create_access_token, hash_password, verify_password
+from app.crud import token as token_crud
 from app.crud import user as user_crud
-from app.schemas.user import LoginIn, SignupIn, TokenOut, UserOut
+from app.schemas.user import LoginIn, RefreshIn, SignupIn, TokenPairOut, UserOut
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-
-def _set_refresh_cookie(response: Response, user_id: int) -> None:
-    response.set_cookie(
-        key=REFRESH_COOKIE_NAME,
-        value=create_refresh_token(user_id),
-        httponly=True,
-        secure=settings.COOKIE_SECURE,
-        samesite="lax",
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
-        path="/auth",
-    )
 
 
 @router.post("/signup", response_model=UserOut, status_code=status.HTTP_201_CREATED)
@@ -40,25 +21,33 @@ async def signup(body: SignupIn, db: DbDep):
     )
 
 
-@router.post("/login", response_model=TokenOut)
-async def login(body: LoginIn, db: DbDep, response: Response):
+@router.post("/login", response_model=TokenPairOut)
+async def login(body: LoginIn, db: DbDep):
     user = await user_crud.get_by_email(db, body.email)
     if user is None or not verify_password(body.password, user.password_hash):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid email or password")
-    _set_refresh_cookie(response, user.id)
-    return TokenOut(access_token=create_access_token(user.id))
+    refresh = await token_crud.issue(db, user.id)
+    await db.commit()
+    return TokenPairOut(access_token=create_access_token(user.id), refresh_token=refresh)
 
 
-@router.post("/refresh", response_model=TokenOut)
-async def refresh(request: Request, db: DbDep, response: Response):
-    token = request.cookies.get(REFRESH_COOKIE_NAME)
-    user_id = decode_token(token, "refresh") if token else None
-    if user_id is None or await user_crud.get_by_id(db, user_id) is None:
+@router.post("/refresh", response_model=TokenPairOut)
+async def refresh(body: RefreshIn, db: DbDep):
+    """rotation: 유효한 refresh를 revoke하고 새 pair 발급. 재사용·무효 토큰은 401."""
+    row = await token_crud.get_valid(db, body.refresh_token)
+    if row is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
-    _set_refresh_cookie(response, user_id)
-    return TokenOut(access_token=create_access_token(user_id))
+    row.revoked = True
+    new_refresh = await token_crud.issue(db, row.user_id)
+    await db.commit()
+    return TokenPairOut(
+        access_token=create_access_token(row.user_id), refresh_token=new_refresh
+    )
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(response: Response):
-    response.delete_cookie(REFRESH_COOKIE_NAME, path="/auth")
+async def logout(body: RefreshIn, db: DbDep):
+    row = await token_crud.get_valid(db, body.refresh_token)
+    if row is not None:
+        row.revoked = True
+        await db.commit()

@@ -9,10 +9,9 @@ class Settings(BaseSettings):
     )
     JWT_SECRET_KEY: str = "dev-secret-do-not-use-in-prod"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 14
     CORS_ORIGINS: str = "http://localhost:5173"
-    COOKIE_SECURE: bool = False
     LLM_PROVIDER: str = "ollama"
     GEMINI_API_KEY: str = ""
 

@@ -8,7 +8,8 @@ AI 프롬프트를 카드로 아카이빙하고 태그로 모아보며 공유하
 - **FE**: Vue 3 (Composition API) + Vite + TailwindCSS v3 + Pinia + Vue Router + GSAP
 - **BE**: FastAPI + SQLAlchemy 2.0 (async) + Pydantic v2 + Alembic
 - **DB**: PostgreSQL (Docker)
-- **Auth**: JWT (access = memory, refresh = httpOnly cookie)
+- **Auth**: JWT — access(30분) = 프론트 메모리(Pinia) / refresh(14일) = localStorage + refresh rotation (`refresh_tokens` 테이블에 hash 저장, 재사용 시 401)
+  > 트레이드오프: 무료 cross-domain 호스팅(FE/BE 서브도메인 분리)에서는 httpOnly third-party cookie가 차단되므로 localStorage + 짧은 access + refresh rotation 채택. 커스텀 도메인 시 httpOnly cookie로 전환 가능.
 
 ## 실행 방법
 
