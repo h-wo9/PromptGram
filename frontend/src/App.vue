@@ -1,9 +1,23 @@
 <script setup>
+// zoom 전환 중 scale된 페이지가 viewport를 넘치며 scrollbar가 깜빡이는 것 방지
+function lockScroll() {
+  document.documentElement.style.overflow = 'hidden'
+}
+function unlockScroll() {
+  document.documentElement.style.overflow = ''
+}
 </script>
 
 <template>
   <router-view v-slot="{ Component }">
-    <transition name="zoom" mode="out-in">
+    <transition
+      name="zoom"
+      mode="out-in"
+      @before-leave="lockScroll"
+      @after-enter="unlockScroll"
+      @enter-cancelled="unlockScroll"
+      @leave-cancelled="unlockScroll"
+    >
       <component :is="Component" />
     </transition>
   </router-view>

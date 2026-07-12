@@ -121,15 +121,22 @@ async function logout() {
           Prompt<span class="text-accent">Gram</span>
         </router-link>
 
-        <div class="flex rounded-lg bg-white/5 p-0.5 text-xs font-medium">
+        <div class="relative grid grid-cols-2 rounded-lg bg-white/5 p-0.5 text-xs font-medium">
+          <div
+            class="absolute inset-y-0.5 left-0.5 w-[calc(50%-0.125rem)] rounded-md bg-accent transition-transform duration-300 ease-out"
+            :class="sort === 'popular' ? 'translate-x-full' : ''"
+            aria-hidden="true"
+          ></div>
           <button
-            :class="sort === 'latest' ? 'bg-accent rounded-md px-3 py-1' : 'px-3 py-1 text-gray-400'"
+            class="relative z-10 px-3 py-1 transition-colors duration-300"
+            :class="sort === 'latest' ? 'text-white' : 'text-gray-400'"
             @click="sort = 'latest'"
           >
             최신
           </button>
           <button
-            :class="sort === 'popular' ? 'bg-accent rounded-md px-3 py-1' : 'px-3 py-1 text-gray-400'"
+            class="relative z-10 px-3 py-1 transition-colors duration-300"
+            :class="sort === 'popular' ? 'text-white' : 'text-gray-400'"
             @click="sort = 'popular'"
           >
             인기

@@ -109,6 +109,8 @@ function start() {
     router.push({ name: 'auth' })
     return
   }
+  // scale 중 stage가 viewport를 넘쳐 scrollbar가 깜빡이는 것 방지 (route 전환의 after-enter에서 해제됨)
+  document.documentElement.style.overflow = 'hidden'
   gsap.to(stage.value, {
     scale: 1.18,
     opacity: 0,
