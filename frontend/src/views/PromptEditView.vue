@@ -156,10 +156,10 @@ async function submit() {
           <button
             type="button"
             :disabled="tuning || promptText.trim().length < 5"
-            class="rounded-lg border border-accent/50 text-accent hover:bg-accent hover:text-white transition-colors px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
+            class="ai-tune-btn rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
             @click="runTune"
           >
-            {{ tuning ? 'AI가 다듬는 중…' : '✦ AI 다듬기' }}
+            {{ tuning ? '✦ AI가 다듬는 중…' : '✦ AI 다듬기' }}
           </button>
           <button
             type="button"
@@ -261,3 +261,33 @@ async function submit() {
     </form>
   </div>
 </template>
+
+<style scoped>
+/* AI 다듬기 — blue↔purple 그라데이션이 천천히 흐르는 시그니처 버튼 */
+.ai-tune-btn {
+  background: linear-gradient(115deg, #0070f3, #7c3aed, #0070f3);
+  background-size: 220% 100%;
+  animation: ai-flow 5s ease-in-out infinite;
+  box-shadow: 0 0 14px rgba(100, 80, 245, 0.28);
+  transition: box-shadow 0.3s ease;
+}
+.ai-tune-btn:hover:not(:disabled) {
+  box-shadow: 0 0 24px rgba(110, 75, 250, 0.5);
+}
+@keyframes ai-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-tune-btn {
+    animation: none;
+  }
+}
+</style>
