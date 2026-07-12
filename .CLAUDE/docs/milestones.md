@@ -51,17 +51,19 @@ M5b. 랜딩 페이지(비로그인 대문): 명세서 2-5 그대로. dark(#0A0A0
 
 ```
 CLAUDE.md와 docs/기능명세서.md를 먼저 읽어라. 아래 M6~M8을 순서대로 자율 실행하고,
-끝나면 짧게 보고하라. LLM_PROVIDER 기본값은 ollama(로컬)로 두고, gemini(3 Flash)도 구현만 해둬라.
+끝나면 짧게 보고하라. LLM provider는 Gemini 단일이다. `.env`의 `GEMINI_API_KEY`가 있어야
+AI 기능 실행·smoke test가 가능하니, 없으면 그 사실만 알리고 코드/구조는 끝까지 완성하라.
 
-M6. LLM Provider 추상화 + 튜닝: services/에 LLMProvider 추상 base + GeminiProvider(3 Flash)
-    + OllamaProvider. env LLM_PROVIDER로 선택. POST /ai/tune(async)는 개선안 + 개선 이유를
+M6. LLM Provider 추상화 + 튜닝: services/에 LLMProvider 추상 base + GeminiProvider(3 Flash)만
+    구현(향후 OpenAI 등은 클래스 추가로 확장). GEMINI_API_KEY는 env, 커밋 금지. POST /ai/tune(async)는
+    개선안 + 개선 이유를
     구조화 반환. 응답 캐싱 + per-user rate limit + 429 exponential backoff. FE에 'AI 다듬기'
     버튼과 before/after+이유 표시. (Gemini 무료 티어 주의사항은 명세서 2-4 참고)
 M7. 자동 태그 추천: POST /ai/suggest-tags(async), 태그 3~5개 반환. provider·캐싱·rate limit
     재사용. FE는 추천 태그 chip 선택 UI.
 M8. 카드 이미지 다운로드: html2canvas로 PromptCard 캡처 PNG 저장. 공유용 카드 스타일 별도.
 
-완료 기준(스스로 확인): LLM_PROVIDER=ollama로 튜닝·태그추천 동작, 캐시 hit 시 재호출 없음,
+완료 기준(스스로 확인): GEMINI_API_KEY 설정 시 튜닝·태그추천 동작, 캐시 hit 시 재호출 없음,
 카드 PNG 다운로드 시 텍스트 잘림 없음.
 ```
 

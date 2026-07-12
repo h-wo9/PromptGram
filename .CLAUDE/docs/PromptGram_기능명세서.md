@@ -70,7 +70,7 @@ Claude Code에게 milestone을 쪼개라고 할 때 이 Phase를 그대로 기�
 | --- | --- | --- |
 | 프롬프트 튜닝 | 초안 입력 → 'AI 다듬기' → 더 구체적·명확한 프롬프트로 변환. **개선안 + 개선 이유**를 함께 반환(단순 rewrite보다 설득력) | 2 |
 | 자동 태그 추천 | 작성한 프롬프트 내용을 분석해 해시태그 3~5개 자동 추천. 사용자가 선택 | 2 |
-| LLM Provider 추상화 | Gemini / OpenAI / 로컬(Ollama)을 교체 가능한 인터페이스로 설계. **로컬 개발 = Ollama, 라이브 데모 = Gemini 3 Flash(무료 티어)**. 면접 어필: "비용 때문에 지금은 Gemini지만 인터페이스 추상화로 env + class만 갈아끼우면 OpenAI 전환 가능" | 2 |
+| LLM Provider 추상화 | **Gemini 3 Flash 단일** provider를 `LLMProvider` 인터페이스 뒤에 둠(dev·demo 공통, 무료 티어). 면접 어필: "지금은 Gemini지만 인터페이스 추상화로 class만 추가하면 OpenAI 전환 가능" | 2 |
 
 **AI 기능 구현 규칙**
 - 모든 AI 호출은 FastAPI `async/await`로 비동기 처리(요청 중 서버 블로킹 방지)
@@ -227,7 +227,7 @@ erDiagram
 - **Cursor-based pagination**: 실무형 무한 스크롤(offset의 중복/누락 문제 해결) — "왜 offset이 아닌가"를 설명할 수 있게
 - **N+1 쿼리 방지**: SQLAlchemy `selectinload`로 tags/counts eager loading
 - **비정규화 & 인덱스 설계**: 인기순 정렬 성능을 위한 counter 비정규화, 목적별 index
-- **LLM Provider 추상화**: Gemini/OpenAI/Ollama 교체 가능 구조 + 캐싱 + rate limit으로 비용 관리
+- **LLM Provider 추상화**: Gemini를 인터페이스 뒤에 둬 향후 OpenAI 등 교체 가능 + 캐싱 + rate limit으로 비용·호출 관리
 - **Vue 컴포넌트 재사용**: `PromptCard`를 피드/마이페이지/검색결과에서 공통 사용
 - **Pydantic 유효성 검사**: 비밀번호 길이, 프롬프트 글자 수 등 입력 스키마 검증
 

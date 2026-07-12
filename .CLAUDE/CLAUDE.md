@@ -1,57 +1,63 @@
-CLAUDE.md — PromptGram
+# CLAUDE.md — PromptGram
 
 이 파일은 Claude Code가 이 프로젝트에서 작업할 때 반드시 따라야 하는 규칙이다.
 
+---
 
-답변 규칙 (Response Rules) — 최우선
+## 답변 규칙 (Response Rules) — 최우선
 
-이 프로젝트는 Claude Code Fable 5로 진행하며, 토큰 절약을 위해 자율 실행 모드로 운영한다.
+이 프로젝트는 Claude Code Fable 5로 진행하며, **토큰 절약을 위해 자율 실행 모드**로 운영한다.
 
+1. **작업 시작 전 `docs/기능명세서.md`와 이 `CLAUDE.md`를 먼저 읽는다.** 추측하지 말고 명세서를 기준으로 한다.
+2. **설명 문장만 한국어. 기술 용어·파일명·경로·코드·명령어·라이브러리명은 영문 원문 그대로. 음차 금지.**
+3. **자율 실행.** 승인을 매번 기다리지 말고, 아래 "기술 결정(Pre-decided)"과 명세서를 근거로 스스로 판단해 **해당 batch/phase 전체를 끝까지 진행**한다.
+4. **되묻지 않는다.** 사용자 질문은 CLAUDE.md·명세서로 해결 불가능한 진짜 blocker(외부 계정/API key 필요, 상충하는 요구 등)일 때만. 사소한 선택은 표준적·보수적으로 알아서 정하고 진행한다.
+5. **출력은 짧게 (토큰 절약).** 코드 전문을 채팅에 다시 붙여넣지 말 것 — 파일로만 작성. 요약은 몇 줄로. 장황한 설명·반복 금지. 관련 tool 호출은 묶어서 실행.
+6. 각 milestone은 스스로 smoke test까지 하고 다음으로 넘어간다. **batch가 끝났을 때만** 한 것 요약(짧게) + smoke test 결과를 보고한다. 중간에 멈추는 건 스스로 못 고치는 hard failure일 때만.
 
-작업 시작 전 docs/기능명세서.md와 이 CLAUDE.md를 먼저 읽는다. 추측하지 말고 명세서를 기준으로 한다.
-설명 문장만 한국어. 기술 용어·파일명·경로·코드·명령어·라이브러리명은 영문 원문 그대로. 음차 금지.
-자율 실행. 승인을 매번 기다리지 말고, 아래 "기술 결정(Pre-decided)"과 명세서를 근거로 스스로 판단해 해당 batch/phase 전체를 끝까지 진행한다.
-되묻지 않는다. 사용자 질문은 CLAUDE.md·명세서로 해결 불가능한 진짜 blocker(외부 계정/API key 필요, 상충하는 요구 등)일 때만. 사소한 선택은 표준적·보수적으로 알아서 정하고 진행한다.
-출력은 짧게 (토큰 절약). 코드 전문을 채팅에 다시 붙여넣지 말 것 — 파일로만 작성. 요약은 몇 줄로. 장황한 설명·반복 금지. 관련 tool 호출은 묶어서 실행.
-각 milestone은 스스로 smoke test까지 하고 다음으로 넘어간다. batch가 끝났을 때만 한 것 요약(짧게) + smoke test 결과를 보고한다. 중간에 멈추는 건 스스로 못 고치는 hard failure일 때만.
+---
 
-
-
-프로젝트 개요
+## 프로젝트 개요
 
 AI 프롬프트를 카드 형태로 아카이빙하고 태그로 모아보며 공유·발전시키는 소셜 피드 서비스.
-시그니처 기능은 변수 템플릿(재사용 가능한 프롬프트)과 AI 프롬프트 튜닝/태그 추천.
-상세 스펙은 docs/기능명세서.md 참조.
+시그니처 기능은 **변수 템플릿**(재사용 가능한 프롬프트)과 **AI 프롬프트 튜닝/태그 추천**.
+상세 스펙은 `docs/기능명세서.md` 참조.
 
-기술 결정 (Pre-decided Defaults) — 되묻지 말 것
+## 기술 결정 (Pre-decided Defaults) — 되묻지 말 것
 
 아래는 확정 사항이다. 이 값으로 진행하고 사용자에게 확인하지 않는다.
 
+- Python 3.12 / Node 20 LTS
+- BE 패키지: **pip + venv + requirements.txt** (poetry·uv 쓰지 말 것)
+- FE 패키지: npm
+- **TailwindCSS는 v3로 고정** (v4 금지 — config 호환 이슈로 시간 낭비)
+- FE 상태관리 Pinia, 라우팅 Vue Router
+- ID: int autoincrement PK
+- 비밀번호 hashing: passlib + bcrypt
+- **JWT 저장 방식 (무료 cross-domain 호스팅 기준): access token = 프론트 메모리(Pinia) / refresh token = localStorage + refresh rotation**. `/auth/refresh`는 refresh를 request body로 받음. refresh_tokens 테이블(token hash·user_id·expires_at·revoked)로 rotation·revocation. CORS는 FE origin만 env로 허용(cookie 안 쓰므로 credentials 불필요). access는 짧게(~30분), refresh는 길게(~14일). 커스텀 도메인 붙이면 httpOnly cookie로 전환 가능
+- 프로필 이미지: MVP는 URL 문자열만 저장(파일 업로드 없음). 미설정 시 기본 avatar
+- BE 테스트: pytest — 핵심 경로만 가볍게 (과설계 금지)
+- seed script로 프롬프트 20개 이상 생성(피드·무한 스크롤 테스트용)
+- 스키마 변경은 항상 Alembic migration
+- milestone 단위로 의미 있는 commit message로 commit
+- **랜딩 페이지 디자인 토큰**: 기본 배경 dark #0A0A0A, 포인트 #0070F3, 폰트 Pretendard(웹폰트 CDN)
+- **랜딩 애니메이션 스택**: GSAP(카드 흐름·parallax·swipe light·zoom-in) + CSS(glassmorphism·glow) + Vue Router transition(페이지 전환). 무거운 3D/WebGL 쓰지 말 것
+- **랜딩 성능**: 배경 카드 ~30개 상한, transform/opacity만 애니메이트, mousemove는 rAF throttle, `prefers-reduced-motion` 존중
+- **CTA는 email/password auth로 연결** (MVP). Google 로그인 버튼은 Phase 3 전까지 만들지 말 것(죽은 버튼 금지)
 
-Python 3.12 / Node 20 LTS
-BE 패키지: pip + venv + requirements.txt (poetry·uv 쓰지 말 것)
-FE 패키지: npm
-TailwindCSS는 v3로 고정 (v4 금지 — config 호환 이슈로 시간 낭비)
-FE 상태관리 Pinia, 라우팅 Vue Router
-ID: int autoincrement PK
-비밀번호 hashing: passlib + bcrypt
-JWT 저장 방식 (무료 cross-domain 호스팅 기준): access token = 프론트 메모리(Pinia) / refresh token = localStorage + refresh rotation. /auth/refresh는 refresh를 request body로 받음. refresh_tokens 테이블(token hash·user_id·expires_at·revoked)로 rotation·revocation. CORS는 FE origin만 env로 허용(cookie 안 쓰므로 credentials 불필요). access는 짧게(~30분), refresh는 길게(~14일). 커스텀 도메인 붙이면 httpOnly cookie로 전환 가능
-프로필 이미지: MVP는 URL 문자열만 저장(파일 업로드 없음). 미설정 시 기본 avatar
-BE 테스트: pytest — 핵심 경로만 가볍게 (과설계 금지)
-seed script로 프롬프트 20개 이상 생성(피드·무한 스크롤 테스트용)
-스키마 변경은 항상 Alembic migration
-milestone 단위로 의미 있는 commit message로 commit
-랜딩 페이지 디자인 토큰: 기본 배경 dark #0A0A0A, 포인트 #0070F3, 폰트 Pretendard(웹폰트 CDN)
-랜딩 애니메이션 스택: GSAP(카드 흐름·parallax·swipe light·zoom-in) + CSS(glassmorphism·glow) + Vue Router transition(페이지 전환). 무거운 3D/WebGL 쓰지 말 것
-랜딩 성능: 배경 카드 ~30개 상한, transform/opacity만 애니메이트, mousemove는 rAF throttle, prefers-reduced-motion 존중
-CTA는 email/password auth로 연결 (MVP). Google 로그인 버튼은 Phase 3 전까지 만들지 말 것(죽은 버튼 금지)
+## 기술 스택
 
+| 영역 | 스택 |
+| --- | --- |
+| FE | Vue 3 (Composition API, `<script setup>`) + Vite + TailwindCSS |
+| BE | FastAPI + SQLAlchemy 2.0 (async) + Pydantic v2 |
+| DB | PostgreSQL |
+| Auth | JWT (access + refresh 분리), 비밀번호 bcrypt/argon2 hashing |
+| AI | Gemini 3 Flash (`LLMProvider` 인터페이스 뒤 단일 provider, 향후 OpenAI 등 교체 가능) |
 
-기술 스택
+## 디렉토리 구조 (monorepo)
 
-영역스택FEVue 3 (Composition API, <script setup>) + Vite + TailwindCSSBEFastAPI + SQLAlchemy 2.0 (async) + Pydantic v2DBPostgreSQLAuthJWT (access + refresh 분리), 비밀번호 bcrypt/argon2 hashingAILLM Provider 추상화 — local=Ollama, demo=Gemini 3 Flash
-
-디렉토리 구조 (monorepo)
+```
 
 promptgram/
 ├── .CLAUDE/
@@ -71,33 +77,31 @@ promptgram/
     │   └── crud/
     ├── alembic/
     └── tests/
+    
+```
 
-코딩 컨벤션
+## 코딩 컨벤션
 
+- **BE**: async 우선. DB 세션은 async session. Router는 얇게, 로직은 `services/`·`crud/`로 분리.
+- **Pydantic**: 입력 검증은 schema에서 엄격하게 (비밀번호 길이, prompt_text 글자 수 제한 등).
+- **N+1 방지**: 관계 로딩은 `selectinload` 등 eager loading 명시.
+- **Pagination**: 피드는 **cursor-based** (`(created_at, id)`). Offset 금지.
+- **FE**: `PromptCard`는 feed/mypage/search에서 공통으로 쓰는 재사용 컴포넌트로 분리.
+- **Secret**: 모든 key·비밀번호는 `.env` (env var)로만. 절대 커밋 금지. `.env.example` 유지.
+- **Migration**: 스키마 변경은 반드시 Alembic migration으로.
 
-BE: async 우선. DB 세션은 async session. Router는 얇게, 로직은 services/·crud/로 분리.
-Pydantic: 입력 검증은 schema에서 엄격하게 (비밀번호 길이, prompt_text 글자 수 제한 등).
-N+1 방지: 관계 로딩은 selectinload 등 eager loading 명시.
-Pagination: 피드는 cursor-based ((created_at, id)). Offset 금지.
-FE: PromptCard는 feed/mypage/search에서 공통으로 쓰는 재사용 컴포넌트로 분리.
-Secret: 모든 key·비밀번호는 .env (env var)로만. 절대 커밋 금지. .env.example 유지.
-Migration: 스키마 변경은 반드시 Alembic migration으로.
+## AI Provider 규칙
 
+- `services/`에 `LLMProvider` 인터페이스(추상 base)를 두고 `GeminiProvider`만 구현. (향후 OpenAI 등 추가 시 클래스만 추가)
+- provider는 Gemini 단일. `GEMINI_API_KEY`(env) 필수 — 없으면 AI 기능 실행·smoke test 불가.
+- 모든 AI 호출: async / 응답 캐싱 / per-user rate limit / 429 exponential backoff.
+- **Gemini 무료 티어 주의**: 무료 입력·출력은 학습에 쓰일 수 있으니 민감정보 금지. billing을 켜면 해당 GCP 프로젝트 무료 티어가 사라지므로 무료/유료 프로젝트 분리.
 
-AI Provider 규칙
+## 결과물 프레이밍
 
+- AI 튜닝 결과는 "개선 **제안**"으로 표기 (정답 아님).
+- 프롬프트는 사용자 생성 콘텐츠 — 부적절 콘텐츠/신고는 후순위(Phase 3) 고려.
 
-services/에 LLMProvider 인터페이스(추상 base)를 두고 GeminiProvider, OllamaProvider 구현.
-실제 provider는 env var(LLM_PROVIDER=gemini|ollama)로 선택.
-모든 AI 호출: async / 응답 캐싱 / per-user rate limit / 429 exponential backoff.
-Gemini 무료 티어 주의: 무료 입력·출력은 학습에 쓰일 수 있으니 민감정보 금지. billing을 켜면 해당 GCP 프로젝트 무료 티어가 사라지므로 무료/유료 프로젝트 분리.
-
-
-결과물 프레이밍
-
-
-AI 튜닝 결과는 "개선 제안"으로 표기 (정답 아님).
-프롬프트는 사용자 생성 콘텐츠 — 부적절 콘텐츠/신고는 후순위(Phase 3) 고려.
 
 ---
 
