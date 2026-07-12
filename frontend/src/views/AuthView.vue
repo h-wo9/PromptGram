@@ -40,9 +40,17 @@ async function submit() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center px-4">
+  <div class="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
+    <!-- 배경: 랜딩과 이어지는 blue↔violet 대기 조명 -->
+    <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+      <div class="auth-blob auth-blob--blue"></div>
+      <div class="auth-blob auth-blob--violet"></div>
+      <div class="auth-grid"></div>
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,#0A0A0A_95%)]"></div>
+    </div>
+
     <div
-      class="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-8 shadow-2xl"
+      class="relative w-full max-w-md rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-8 shadow-2xl shadow-[0_20px_80px_rgba(40,60,180,0.18)]"
     >
       <router-link to="/" class="block text-center text-2xl font-extrabold tracking-tight">
         Prompt<span class="text-accent">Gram</span>
@@ -112,6 +120,48 @@ async function submit() {
 </template>
 
 <style scoped>
+/* ── 배경 대기 조명: 천천히 떠다니는 blue/violet blob (transform만) ── */
+.auth-blob {
+  position: absolute;
+  width: 55vmax;
+  height: 55vmax;
+  border-radius: 9999px;
+  will-change: transform;
+}
+.auth-blob--blue {
+  top: -22vmax;
+  left: -14vmax;
+  background: radial-gradient(closest-side, rgba(0, 112, 243, 0.45), rgba(0, 112, 243, 0.14) 50%, transparent 72%);
+  animation: blob-float 16s ease-in-out infinite alternate;
+}
+.auth-blob--violet {
+  bottom: -24vmax;
+  right: -16vmax;
+  background: radial-gradient(closest-side, rgba(124, 58, 237, 0.42), rgba(124, 58, 237, 0.13) 50%, transparent 72%);
+  animation: blob-float 19s ease-in-out infinite alternate-reverse;
+}
+@keyframes blob-float {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(6vmax, -5vmax) scale(1.12); }
+}
+/* 은은한 grid — 공간감 */
+.auth-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-blob--blue,
+  .auth-blob--violet {
+    animation: none;
+  }
+}
+
 /* 닉네임 필드 등장/퇴장 — max-height + opacity collapse */
 .collapse-field {
   overflow: hidden;

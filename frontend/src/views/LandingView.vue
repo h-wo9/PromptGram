@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -37,7 +37,80 @@ const FEED_PREVIEW = [
 const galaxyFar = ref(null)
 const galaxyNear = ref(null)
 const stage = ref(null)
+const scrolled = ref(false)
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+// ── 타이핑 애니메이션 factory: 섹션 진입 시 start()로 시작 ──
+function createTyping(segments, { loop = false, speed = 46 } = {}) {
+  const chars = segments.flatMap((s) => [...s.t].map((ch) => ({ ch, v: !!s.v })))
+  const count = ref(reduced ? chars.length : 0)
+  const done = ref(reduced)
+  let timer = null
+  let started = false
+
+  function tick() {
+    if (count.value >= chars.length) {
+      done.value = true
+      if (loop) {
+        // 완성 후 잠시 유지 → 지우고 다시 타이핑
+        timer = setTimeout(() => {
+          count.value = 0
+          done.value = false
+          timer = setTimeout(tick, 500)
+        }, 2400)
+      }
+      return
+    }
+    count.value += 1
+    timer = setTimeout(tick, speed)
+  }
+
+  function start(delay = 0) {
+    if (started || reduced) return
+    started = true
+    timer = setTimeout(tick, delay)
+  }
+
+  function stop() {
+    if (timer) clearTimeout(timer)
+  }
+
+  const rendered = computed(() => {
+    const out = []
+    for (const { ch, v } of chars.slice(0, count.value)) {
+      const last = out[out.length - 1]
+      if (last && last.v === v) last.text += ch
+      else out.push({ text: ch, v })
+    }
+    return out
+  })
+
+  return { rendered, done, start, stop }
+}
+
+const tplTyping = createTyping(
+  [
+    { t: '다음 ' },
+    { t: '[원문]', v: true },
+    { t: '을 ' },
+    { t: '[언어]', v: true },
+    { t: '로, ' },
+    { t: '[톤]', v: true },
+    { t: ' 톤을 유지해 번역해줘.' },
+  ],
+  { loop: true }
+)
+
+const afterTyping = createTyping(
+  [
+    { t: '당신은 비즈니스 커뮤니케이션 전문가입니다. ' },
+    { t: '[원본 이메일]', v: true },
+    { t: '을 ' },
+    { t: '[수신자]', v: true },
+    { t: '와의 관계를 고려해 정중한 비즈니스 메일로 재작성하세요…' },
+  ],
+  { speed: 24 }
+)
 
 function buildCards(count, layerSeed) {
   const cards = []
@@ -62,8 +135,14 @@ const nearCards = buildCards(isMobile ? 5 : 9, 2)
 let ctx = null
 let rafId = null
 let mouseHandler = null
+let scrollHandler = null
 
 onMounted(() => {
+  scrollHandler = () => {
+    scrolled.value = window.scrollY > 40
+  }
+  window.addEventListener('scroll', scrollHandler, { passive: true })
+
   if (reduced) return
 
   ctx = gsap.context(() => {
@@ -95,6 +174,35 @@ onMounted(() => {
       .to('.aurora-a', { opacity: 0.5, ease: 'none' }, 0)
       .to('.aurora-b', { opacity: 0.85, ease: 'none' }, 0)
 
+    // Apple 스타일 pinned 전환: 변수 템플릿 → AI 다듬기
+    const pinTl = gsap.timeline({
+      scrollTrigger: {
+        trigger: '.pin-stage',
+        start: 'top top',
+        end: '+=160%',
+        scrub: 0.6,
+        pin: true,
+      },
+    })
+    pinTl
+      .to('.slide-1', { autoAlpha: 0, y: -70, ease: 'power1.in', duration: 1 }, 0.55)
+      .fromTo(
+        '.slide-2',
+        { autoAlpha: 0, y: 90 },
+        { autoAlpha: 1, y: 0, ease: 'power1.out', duration: 1 },
+        1.25
+      )
+      .call(() => afterTyping.start(350), [], 1.7) // AFTER 카드가 보이면 타이핑 시작 (1회)
+      .to({}, { duration: 0.45 }) // 전환 후 잠깐 머무름
+
+    // 변수 템플릿 박스: 섹션이 화면에 들어올 때 비어 있다가 타이핑 시작
+    ScrollTrigger.create({
+      trigger: '.pin-stage',
+      start: 'top 70%',
+      once: true,
+      onEnter: () => tplTyping.start(250),
+    })
+
     // 섹션 콘텐츠 reveal
     gsap.utils.toArray('[data-reveal]').forEach((el) => {
       gsap.fromTo(
@@ -106,6 +214,22 @@ onMounted(() => {
           duration: 0.8,
           ease: 'power2.out',
           scrollTrigger: { trigger: el, start: 'top 82%', once: true },
+        }
+      )
+    })
+
+    // 피드 미리보기: 좋아요·복사 숫자가 차오르는 count-up
+    gsap.utils.toArray('[data-count]').forEach((el) => {
+      gsap.fromTo(
+        el,
+        { textContent: 0 },
+        {
+          textContent: Number(el.dataset.count),
+          duration: 1.8,
+          ease: 'power1.out',
+          snap: { textContent: 1 },
+          immediateRender: true,
+          scrollTrigger: { trigger: el, start: 'top 88%', once: true },
         }
       )
     })
@@ -144,7 +268,10 @@ onMounted(() => {
 onUnmounted(() => {
   ctx?.revert()
   if (mouseHandler) window.removeEventListener('mousemove', mouseHandler)
+  if (scrollHandler) window.removeEventListener('scroll', scrollHandler)
   if (rafId) cancelAnimationFrame(rafId)
+  tplTyping.stop()
+  afterTyping.stop()
 })
 
 // CTA: 카드 속으로 빨려드는 zoom-in 후 auth로
@@ -175,8 +302,11 @@ function start() {
       <div class="aurora aurora-c"></div>
     </div>
 
-    <!-- ── 상단 미니 nav ── -->
-    <header class="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-6 sm:px-10 h-16">
+    <!-- ── 상단 고정 nav (스크롤 시 glass bar) ── -->
+    <header
+      class="fixed top-0 inset-x-0 z-40 flex items-center justify-between px-6 sm:px-10 h-16 transition-all duration-300"
+      :class="scrolled ? 'bg-night/70 backdrop-blur-md border-b border-white/10' : 'border-b border-transparent'"
+    >
       <span class="text-base font-extrabold tracking-tight">Prompt<span class="text-accent">Gram</span></span>
       <router-link
         to="/auth"
@@ -236,73 +366,79 @@ function start() {
       </div>
     </section>
 
-    <!-- ════ S2. 변수 템플릿 ════ -->
-    <section class="section">
-      <div class="section-inner">
-        <div data-reveal>
-          <p class="eyebrow">변수 템플릿</p>
-          <h2 class="headline">한 번의 발견을,<br /><span class="grad-text">평생의 도구로.</span></h2>
-          <p class="body-copy">
-            잘 만든 프롬프트를 매번 처음부터 다시 쓰고 있진 않나요?
-            본문에 <span class="text-accent font-semibold">[변수]</span>만 넣어 저장하면,
-            값을 갈아끼워 언제든 다시 꺼내 쓰는 나만의 템플릿이 됩니다.
-          </p>
-        </div>
-
-        <div class="demo-wrap" data-reveal>
-          <div class="demo-glow" aria-hidden="true"></div>
-          <div class="demo-card">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-gray-300">번역 프롬프트</span>
-              <span class="rounded-full bg-violet-500/20 text-violet-300 px-2.5 py-0.5 text-[11px] font-semibold">변수 3개 템플릿</span>
-            </div>
-            <p class="mt-4 text-[15px] leading-relaxed text-gray-200">
-              다음 <span class="demo-var">[원문]</span>을
-              <span class="demo-var" style="animation-delay: 0.6s">[언어]</span>로,
-              <span class="demo-var" style="animation-delay: 1.2s">[톤]</span> 톤을 유지해 번역해줘.
+    <!-- ════ S2+S3. Pinned 전환: 변수 템플릿 → AI 다듬기 ════ -->
+    <section class="pin-stage">
+      <div class="slide slide-1">
+        <div class="section-inner">
+          <div>
+            <p class="eyebrow">변수 템플릿</p>
+            <h2 class="headline">한 번의 발견을,<br /><span class="grad-text">평생의 도구로.</span></h2>
+            <p class="body-copy">
+              잘 만든 프롬프트를 매번 처음부터 다시 쓰고 있진 않나요?
+              본문에 <span class="text-accent font-semibold">[변수]</span>만 넣어 저장하면,
+              값을 갈아끼워 언제든 다시 꺼내 쓰는 나만의 템플릿이 됩니다.
             </p>
-            <div class="mt-5 rounded-lg bg-accent/90 text-center py-2.5 text-sm font-semibold shadow-[0_0_18px_rgba(0,112,243,0.4)]">
-              변수 채워서 복사
+          </div>
+
+          <div class="demo-wrap">
+            <div class="demo-glow" aria-hidden="true"></div>
+            <div class="demo-card">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-gray-300">번역 프롬프트</span>
+                <span class="rounded-full bg-violet-500/20 text-violet-300 px-2.5 py-0.5 text-[11px] font-semibold">변수 3개 템플릿</span>
+              </div>
+              <p class="mt-4 text-[15px] leading-relaxed text-gray-200 min-h-[3.2em]">
+                <template v-for="(seg, i) in tplTyping.rendered.value" :key="i">
+                  <span v-if="seg.v" class="demo-var">{{ seg.text }}</span>
+                  <template v-else>{{ seg.text }}</template>
+                </template><span class="type-caret" aria-hidden="true"></span>
+              </p>
+              <div class="mt-5 rounded-lg bg-accent/90 text-center py-2.5 text-sm font-semibold shadow-[0_0_18px_rgba(0,112,243,0.4)]">
+                변수 채워서 복사
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </section>
 
-    <!-- ════ S3. AI 다듬기 ════ -->
-    <section class="section">
-      <div class="section-inner section-inner--reverse">
-        <div data-reveal>
-          <p class="eyebrow eyebrow--violet">AI 다듬기 · 태그 추천</p>
-          <h2 class="headline">쓰다 만 문장도,<br /><span class="grad-text">AI가 프로의 프롬프트로.</span></h2>
-          <p class="body-copy">
-            초안을 던지면 AI가 더 구체적이고 명확하게 다듬고,
-            <strong class="text-gray-200">왜 그렇게 고쳤는지 이유까지</strong> 설명합니다.
-            어울리는 태그도 골라주니, 정리는 덤이에요.
-          </p>
-          <ul class="mt-6 flex flex-wrap gap-2 text-xs">
-            <li class="reason-chip">페르소나 부여</li>
-            <li class="reason-chip">변수로 재사용성 확장</li>
-            <li class="reason-chip">구체적 지침 추가</li>
-          </ul>
-        </div>
+      <div class="slide slide-2">
+        <div class="section-inner section-inner--reverse">
+          <div>
+            <p class="eyebrow eyebrow--violet">AI 다듬기 · 태그 추천</p>
+            <h2 class="headline">쓰다 만 문장도,<br /><span class="grad-text">AI가 프로의 프롬프트로.</span></h2>
+            <p class="body-copy">
+              초안을 던지면 AI가 더 구체적이고 명확하게 다듬고,
+              <strong class="text-gray-200">왜 그렇게 고쳤는지 이유까지</strong> 설명합니다.
+              어울리는 태그도 골라주니, 정리는 덤이에요.
+            </p>
+            <ul class="mt-6 flex flex-wrap gap-2 text-xs">
+              <li class="reason-chip">페르소나 부여</li>
+              <li class="reason-chip">변수로 재사용성 확장</li>
+              <li class="reason-chip">구체적 지침 추가</li>
+            </ul>
+          </div>
 
-        <div class="demo-wrap" data-reveal>
-          <div class="demo-glow demo-glow--violet" aria-hidden="true"></div>
-          <div class="space-y-3">
-            <div class="demo-card demo-card--dim">
-              <p class="text-[11px] font-semibold text-gray-500 mb-1.5">BEFORE</p>
-              <p class="text-sm text-gray-400">이메일 좀 정중하게 다듬어줘</p>
-            </div>
-            <div class="ai-beam" aria-hidden="true">✦</div>
-            <div class="demo-card demo-card--ai">
-              <p class="text-[11px] font-semibold text-violet-300 mb-1.5">AFTER — AI 개선 제안</p>
-              <p class="text-sm leading-relaxed text-gray-200">
-                당신은 비즈니스 커뮤니케이션 전문가입니다.
-                <span class="demo-var">[원본 이메일]</span>을
-                <span class="demo-var">[수신자]</span>와의 관계를 고려해
-                정중한 비즈니스 메일로 재작성하세요…
-              </p>
+          <div class="demo-wrap">
+            <div class="demo-glow demo-glow--violet" aria-hidden="true"></div>
+            <div class="space-y-3">
+              <div class="demo-card demo-card--dim">
+                <p class="text-[11px] font-semibold text-gray-500 mb-1.5">BEFORE</p>
+                <p class="text-sm text-gray-400">이메일 좀 정중하게 다듬어줘</p>
+              </div>
+              <div class="ai-beam" aria-hidden="true">✦</div>
+              <div class="demo-card demo-card--ai">
+                <p class="text-[11px] font-semibold text-violet-300 mb-1.5">AFTER — AI 개선 제안</p>
+                <p class="text-sm leading-relaxed text-gray-200 min-h-[4.6em]">
+                  <template v-for="(seg, i) in afterTyping.rendered.value" :key="i">
+                    <span v-if="seg.v" class="demo-var">{{ seg.text }}</span>
+                    <template v-else>{{ seg.text }}</template>
+                  </template><span
+                    v-if="!afterTyping.done.value"
+                    class="type-caret type-caret--violet"
+                    aria-hidden="true"
+                  ></span>
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -330,8 +466,8 @@ function start() {
           <p class="text-[13px] font-bold leading-snug">{{ card.title }}</p>
           <span class="mt-2 inline-block rounded-full bg-accent/15 text-accent px-2 py-0.5 text-[10px]">#{{ card.tag }}</span>
           <div class="mt-3 flex gap-3 text-[11px] text-gray-500">
-            <span class="text-red-400/80">♥ {{ card.likes }}</span>
-            <span>⧉ {{ card.copies }}</span>
+            <span class="text-red-400/80">♥ <span :data-count="card.likes">{{ card.likes }}</span></span>
+            <span>⧉ <span :data-count="card.copies">{{ card.copies }}</span></span>
           </div>
         </div>
       </div>
@@ -391,6 +527,49 @@ function start() {
 .section {
   position: relative;
   padding: 8.5rem 0;
+}
+
+/* ── Pinned 전환 스테이지 (모션 허용 시 슬라이드를 겹쳐두고 GSAP이 crossfade) ── */
+@media (prefers-reduced-motion: no-preference) {
+  .pin-stage {
+    position: relative;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .slide-2 {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slide {
+    padding: 6rem 0;
+  }
+}
+
+/* 타이핑 caret */
+.type-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: #3b96ff;
+  animation: caret-blink 1s steps(2) infinite;
+}
+.type-caret--violet {
+  background: #a78bfa;
+}
+@keyframes caret-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 .section-inner {
   display: grid;
@@ -637,7 +816,8 @@ function start() {
   }
   .demo-var,
   .cta-orb,
-  .animate-bounce-slow {
+  .animate-bounce-slow,
+  .type-caret {
     animation: none;
   }
 }
