@@ -23,32 +23,40 @@ const tag = ref(route.query.tag ?? null)
 const loading = ref(false)
 const done = ref(false)
 const sentinel = ref(null)
+const feedVersion = ref(0) // reset 데이터가 도착할 때만 증가 → grid crossfade 트리거
 let observer = null
+let requestSeq = 0
 
 async function loadMore(reset = false) {
-  if (loading.value || (done.value && !reset)) return
+  // reset(정렬·태그 전환)은 진행 중 로드를 무시하고 항상 최신 요청을 우선한다
+  if (!reset && (loading.value || done.value)) return
+  const seq = ++requestSeq
   loading.value = true
   try {
-    if (reset) {
-      items.value = []
-      nextCursor.value = null
-      done.value = false
-    }
     const data = await fetchFeed({
-      cursor: nextCursor.value ?? undefined,
+      cursor: reset ? undefined : nextCursor.value ?? undefined,
       sort: sort.value,
       tag: tag.value ?? undefined,
     })
-    items.value.push(...data.items)
+    if (seq !== requestSeq) return // 더 최신 요청이 나감 — 결과 폐기
+    if (reset) {
+      // 기존 카드를 유지하다가 새 데이터 도착 시점에 교체 (빈 화면 플래시 방지)
+      items.value = data.items
+      feedVersion.value += 1
+    } else {
+      items.value.push(...data.items)
+    }
     nextCursor.value = data.next_cursor
-    if (!data.next_cursor) done.value = true
+    done.value = !data.next_cursor
   } finally {
-    loading.value = false
-    // sentinel이 여전히 화면 안이면 re-observe로 초기 콜백을 다시 받아 이어서 로드
-    await nextTick()
-    if (!done.value && observer && sentinel.value) {
-      observer.unobserve(sentinel.value)
-      observer.observe(sentinel.value)
+    if (seq === requestSeq) {
+      loading.value = false
+      // sentinel이 여전히 화면 안이면 re-observe로 초기 콜백을 다시 받아 이어서 로드
+      await nextTick()
+      if (!done.value && observer && sentinel.value) {
+        observer.unobserve(sentinel.value)
+        observer.observe(sentinel.value)
+      }
     }
   }
 }
@@ -186,15 +194,17 @@ async function logout() {
     </header>
 
     <main class="max-w-6xl mx-auto px-4 py-6">
-      <MasonryGrid :items="items" v-slot="{ item }">
-        <PromptCard
-          :prompt="item"
-          @like="onLike"
-          @bookmark="onBookmark"
-          @copied="onCopied"
-          @tag="(t) => (tag = t)"
-        />
-      </MasonryGrid>
+      <transition name="feed-swap" mode="out-in">
+        <MasonryGrid :key="feedVersion" :items="items" v-slot="{ item }">
+          <PromptCard
+            :prompt="item"
+            @like="onLike"
+            @bookmark="onBookmark"
+            @copied="onCopied"
+            @tag="(t) => (tag = t)"
+          />
+        </MasonryGrid>
+      </transition>
 
       <div ref="sentinel" class="h-8"></div>
       <p v-if="loading" class="text-center text-sm text-gray-500 py-4">불러오는 중…</p>
@@ -207,3 +217,25 @@ async function logout() {
     </main>
   </div>
 </template>
+
+<style scoped>
+/* 정렬·태그 전환: 이전 grid가 살짝 내려가며 사라지고 새 grid가 fade-in (카드 stagger는 MasonryGrid) */
+.feed-swap-enter-active {
+  transition: opacity 0.2s ease;
+}
+.feed-swap-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.feed-swap-enter-from {
+  opacity: 0;
+}
+.feed-swap-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .feed-swap-leave-to {
+    transform: none;
+  }
+}
+</style>
