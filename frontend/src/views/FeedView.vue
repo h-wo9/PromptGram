@@ -122,7 +122,7 @@ async function logout() {
 <template>
   <div class="min-h-screen">
     <header
-      class="sticky top-0 z-20 border-b border-white/10 bg-base/80 backdrop-blur-xl"
+      class="sticky top-0 z-20 border-b border-white/10 bg-night/80 backdrop-blur-xl"
     >
       <div class="max-w-6xl mx-auto px-4 h-14 flex items-center gap-4">
         <router-link to="/feed" class="text-lg font-extrabold tracking-tight">

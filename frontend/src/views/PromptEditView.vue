@@ -232,7 +232,7 @@ async function submit() {
       <div class="flex gap-3">
         <select
           v-model="aiSource"
-          class="rounded-lg bg-white/5 border border-white/10 px-3 py-2.5 text-sm focus:border-accent focus:outline-none [&>option]:bg-base"
+          class="rounded-lg bg-white/5 border border-white/10 px-3 py-2.5 text-sm focus:border-accent focus:outline-none [&>option]:bg-night"
         >
           <option value="">대상 모델 (선택)</option>
           <option>ChatGPT</option>

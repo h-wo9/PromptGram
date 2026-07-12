@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 html {
-  @apply bg-base text-gray-100 antialiased;
+  @apply bg-night text-gray-100 antialiased;
 }
 
 body {
