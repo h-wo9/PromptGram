@@ -31,6 +31,7 @@ const items = ref([])
 const nextCursor = ref(null)
 const sort = ref('latest')
 const tag = ref(route.query.tag ?? null)
+const q = ref(route.query.q ?? null) // 키워드 검색 (제목+본문, pg_trgm)
 const loading = ref(false)
 const done = ref(false)
 const sentinel = ref(null)
@@ -48,6 +49,7 @@ async function loadMore(reset = false) {
       cursor: reset ? undefined : nextCursor.value ?? undefined,
       sort: sort.value,
       tag: tag.value ?? undefined,
+      q: q.value ?? undefined,
     })
     if (seq !== requestSeq) return // 더 최신 요청이 나감 — 결과 폐기
     if (reset) {
@@ -72,8 +74,11 @@ async function loadMore(reset = false) {
   }
 }
 
-watch([sort, tag], () => {
-  router.replace({ query: tag.value ? { tag: tag.value } : {} })
+watch([sort, tag, q], () => {
+  const query = {}
+  if (tag.value) query.tag = tag.value
+  if (q.value) query.q = q.value
+  router.replace({ query })
   loadMore(true)
 })
 
@@ -141,9 +146,20 @@ async function onCopied(prompt) {
   }
 }
 
+// 통합 검색: '#태그'는 태그 필터, 그 외는 제목+본문 키워드 검색
 function searchTag() {
-  const t = searchInput.value.replace(/^#/, '').trim()
-  if (t) tag.value = t
+  const raw = searchInput.value.trim()
+  if (!raw) return
+  if (raw.startsWith('#')) {
+    const t = raw.replace(/^#+/, '').trim()
+    if (t) {
+      tag.value = t
+      q.value = null
+    }
+  } else {
+    q.value = raw
+    tag.value = null
+  }
   searchInput.value = ''
 }
 
@@ -193,11 +209,18 @@ async function logout() {
         >
           #{{ tag }} ✕
         </button>
+        <button
+          v-if="q"
+          class="rounded-full bg-violet-500/20 text-violet-300 light:text-violet-600 px-3 py-1 text-xs"
+          @click="q = null"
+        >
+          "{{ q }}" ✕
+        </button>
 
         <form class="hidden sm:block" @submit.prevent="searchTag">
           <input
             v-model="searchInput"
-            placeholder="#태그 검색"
+            placeholder="검색 · #태그"
             class="w-36 rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-200 px-3 py-1.5 text-xs focus:border-accent focus:outline-none focus:w-48 transition-all"
           />
         </form>
@@ -250,7 +273,7 @@ async function logout() {
         <form @submit.prevent="searchTag(); mobileSearch = false">
           <input
             v-model="searchInput"
-            placeholder="#태그 검색"
+            placeholder="검색 · #태그"
             class="w-full rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-200 px-3 py-2 text-sm focus:border-accent focus:outline-none"
           />
         </form>

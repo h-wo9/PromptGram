@@ -70,10 +70,11 @@ async def get_feed(
     cursor: str | None = Query(default=None),
     sort: Literal["latest", "popular"] = Query(default="latest"),
     tag: str | None = Query(default=None, max_length=50),
+    q: str | None = Query(default=None, min_length=1, max_length=100),
 ):
     cursor_key = decode_cursor(cursor, sort) if cursor else None
     prompts = await prompt_crud.get_feed(
-        db, sort=sort, tag=tag, cursor_key=cursor_key, limit=FEED_PAGE_SIZE
+        db, sort=sort, tag=tag, q=q, cursor_key=cursor_key, limit=FEED_PAGE_SIZE
     )
     liked, bookmarked = await prompt_crud.get_interaction_ids(
         db, user.id if user else None, [p.id for p in prompts]

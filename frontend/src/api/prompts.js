@@ -16,9 +16,9 @@ export function deletePrompt(id) {
   return api.delete(`/prompts/${id}`)
 }
 
-export function fetchFeed({ cursor, sort, tag } = {}) {
+export function fetchFeed({ cursor, sort, tag, q } = {}) {
   return api
-    .get('/prompts', { params: { cursor, sort, tag } })
+    .get('/prompts', { params: { cursor, sort, tag, q } })
     .then((r) => r.data)
 }
 

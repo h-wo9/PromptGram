@@ -101,11 +101,17 @@ def _apply_cursor(query, sort: str, cursor_key: tuple | None):
     )
 
 
+def _escape_like(q: str) -> str:
+    """ILIKE 패턴 메타문자 이스케이프"""
+    return q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 async def get_feed(
     db: AsyncSession,
     *,
     sort: str = "latest",
     tag: str | None = None,
+    q: str | None = None,
     cursor_key: tuple[datetime | int, int] | None = None,
     limit: int = 12,
 ) -> list[Prompt]:
@@ -118,6 +124,15 @@ async def get_feed(
     if tag:
         query = query.join(PromptTag, PromptTag.prompt_id == Prompt.id).join(
             Tag, and_(Tag.id == PromptTag.tag_id, Tag.name == tag)
+        )
+    if q:
+        # pg_trgm GIN 인덱스(title/prompt_text)가 가속하는 부분 문자열 검색
+        pattern = f"%{_escape_like(q)}%"
+        query = query.where(
+            or_(
+                Prompt.title.ilike(pattern, escape="\\"),
+                Prompt.prompt_text.ilike(pattern, escape="\\"),
+            )
         )
     if sort == "popular":
         query = query.order_by(Prompt.like_count.desc(), Prompt.id.desc())

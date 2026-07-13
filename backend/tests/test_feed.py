@@ -48,6 +48,34 @@ async def test_feed_tag_filter_and_private_excluded(auth_client):
     assert all(p["title"] != "secret" for p in res.json()["items"])
 
 
+async def test_feed_keyword_search(auth_client):
+    await auth_client.post(
+        "/prompts",
+        json={"title": "회의록 정리 도우미", "prompt_text": "녹취록에서 안건을 뽑아줘", "is_public": True},
+    )
+    await auth_client.post(
+        "/prompts",
+        json={"title": "여행 일정", "prompt_text": "도쿄 회의록이 아니라 여행 얘기", "is_public": True},
+    )
+    await auth_client.post(
+        "/prompts",
+        json={"title": "무관한 글", "prompt_text": "코드 리뷰", "is_public": True},
+    )
+
+    # 제목 + 본문 모두에서 매칭
+    res = await auth_client.get("/prompts", params={"q": "회의록"})
+    titles = {p["title"] for p in res.json()["items"]}
+    assert titles == {"회의록 정리 도우미", "여행 일정"}
+
+    # 매칭 없음
+    res = await auth_client.get("/prompts", params={"q": "존재하지않는키워드"})
+    assert res.json()["items"] == []
+
+    # ILIKE 메타문자는 리터럴로 취급 (% 이스케이프)
+    res = await auth_client.get("/prompts", params={"q": "%회의%"})
+    assert res.json()["items"] == []
+
+
 async def test_feed_popular_sort(auth_client):
     await _create_prompts(auth_client, 3)
     res = await auth_client.get("/prompts", params={"sort": "popular"})
