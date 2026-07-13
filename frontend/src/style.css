@@ -4,6 +4,8 @@
 
 html {
   @apply bg-night text-gray-100 antialiased;
+  /* 페이지별 스크롤바 유무로 콘텐츠 폭이 달라지며 생기는 좌우 밀림 방지 (트랙 상시 확보) */
+  overflow-y: scroll;
 }
 
 html.light {
