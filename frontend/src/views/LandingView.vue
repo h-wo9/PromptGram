@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { lockScroll } from '../composables/scrollLock'
+import ShareCard from '../components/ShareCard.vue'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -27,13 +28,33 @@ const SNIPPETS = [
 
 // 피드 미리보기 섹션용 미니 카드
 const FEED_PREVIEW = [
-  { title: '코드 리뷰 요청 템플릿', tag: '개발', likes: 128, copies: 342 },
-  { title: '이메일 정중하게 다듬기', tag: '업무', likes: 96, copies: 210 },
-  { title: '논문 3문장 요약', tag: '연구', likes: 87, copies: 154 },
-  { title: '면접 예상 질문 10선', tag: '커리어', likes: 143, copies: 388 },
-  { title: '유튜브 훅 스크립트', tag: '콘텐츠', likes: 74, copies: 132 },
-  { title: '하루 식단 설계', tag: '건강', likes: 61, copies: 98 },
+  { title: '코드 리뷰 요청 템플릿', tag: '개발', likes: 128, copies: 342, comments: 24 },
+  { title: '이메일 정중하게 다듬기', tag: '업무', likes: 96, copies: 210, comments: 11 },
+  { title: '논문 3문장 요약', tag: '연구', likes: 87, copies: 154, comments: 8 },
+  { title: '면접 예상 질문 10선', tag: '커리어', likes: 143, copies: 388, comments: 31 },
+  { title: '유튜브 훅 스크립트', tag: '콘텐츠', likes: 74, copies: 132, comments: 6 },
+  { title: '하루 식단 설계', tag: '건강', likes: 61, copies: 98, comments: 9 },
 ]
+
+// 커뮤니티 섹션 댓글 버블 데모
+const COMMENTS_DEMO = [
+  { nick: '미나', time: '방금 전', text: "[톤]에 '유머러스하게'를 넣으니 결과가 확 달라져요!", edited: false },
+  { nick: '개발자킴', time: '5분 전', text: 'Claude에서 특히 잘 먹히네요. 강추 👍', edited: true },
+  { nick: '데모유저', time: '1시간 전', text: '스크랩해두고 매주 꺼내 쓰는 중입니다.', edited: false },
+]
+
+// 카드 이미지 공유 섹션용 데모 프롬프트
+const SHARE_DEMO = {
+  title: '코드 리뷰 요청 템플릿',
+  prompt_text: '다음 [언어] 코드를 [관점] 관점에서 리뷰해줘.\n\n[코드]',
+  ai_source: 'Claude',
+  tags: ['개발', '코드리뷰'],
+  variables: ['언어', '관점', '코드'],
+  author: { nickname: '데모유저' },
+}
+
+// 기능 키워드 marquee
+const MARQUEE = ['변수 템플릿', 'AI 다듬기', '태그 추천', '원클릭 복사', '무한 피드', '댓글', '카드 이미지 공유', '좋아요 & 스크랩', '라이트 모드']
 
 const galaxyFar = ref(null)
 const galaxyNear = ref(null)
@@ -235,6 +256,51 @@ onMounted(() => {
       )
     })
 
+    // 댓글 버블: 대화가 이어지듯 순서대로 pop-in
+    gsap.utils.toArray('[data-pop-group]').forEach((group) => {
+      gsap.fromTo(
+        group.children,
+        { opacity: 0, y: 16, scale: 0.96 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.5,
+          ease: 'back.out(1.7)',
+          stagger: 0.16,
+          scrollTrigger: { trigger: group, start: 'top 82%', once: true },
+        }
+      )
+    })
+
+    // 초대형 ghost 타이포: 스크롤에 따라 가로로 흐름
+    gsap.utils.toArray('[data-ghost]').forEach((el) => {
+      gsap.fromTo(
+        el,
+        { xPercent: -7 },
+        {
+          xPercent: 7,
+          ease: 'none',
+          scrollTrigger: { trigger: el.parentElement, start: 'top bottom', end: 'bottom top', scrub: 1 },
+        }
+      )
+    })
+
+    // 공유 카드: 기울어진 채 내려오다 스크롤에 맞춰 정돈
+    const shareVisual = document.querySelector('.share-visual')
+    if (shareVisual) {
+      gsap.fromTo(
+        shareVisual,
+        { rotate: 7, y: 60 },
+        {
+          rotate: -2,
+          y: 0,
+          ease: 'none',
+          scrollTrigger: { trigger: shareVisual, start: 'top bottom', end: 'center 55%', scrub: 0.8 },
+        }
+      )
+    }
+
     // 피드 미리보기: 컬럼별 다른 속도의 패럴랙스 (심도)
     gsap.utils.toArray('[data-parallax]').forEach((el) => {
       gsap.fromTo(
@@ -348,18 +414,23 @@ function start() {
       <div class="hero-vignette absolute inset-0 pointer-events-none"></div>
 
       <div class="relative z-10">
-        <p class="text-sm font-semibold tracking-[0.2em] text-gray-500 uppercase">PromptGram</p>
+        <p class="hero-rise text-sm font-semibold tracking-[0.2em] text-gray-500 uppercase" style="--wi: 0">PromptGram</p>
         <h1 class="mt-5 text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.15] tracking-tight max-w-3xl">
-          당신의 <span class="var-chip">[완벽한 질문]</span>,<br />
-          허공에 날리지 마세요.
+          <span class="hero-rise" style="--wi: 1">당신의</span>
+          <span class="hero-rise" style="--wi: 2"><span class="var-chip">[완벽한 질문]</span>,</span><br />
+          <span class="hero-rise" style="--wi: 3">허공에</span>
+          <span class="hero-rise" style="--wi: 4">날리지</span>
+          <span class="hero-rise" style="--wi: 5">마세요.</span>
         </h1>
-        <p class="mt-6 text-base sm:text-lg text-gray-400 light:text-slate-500 max-w-xl mx-auto">
-          전 세계의 검증된 프롬프트를 아카이빙하고,<br class="sm:hidden" />
-          AI 100% 활용법을 발견하세요.
+        <p class="hero-rise mt-6 text-base sm:text-lg text-gray-400 light:text-slate-500 max-w-xl mx-auto" style="--wi: 6">
+          아카이빙하고, AI로 다듬고, 커뮤니티와 나누세요.<br class="sm:hidden" />
+          검증된 프롬프트가 여기 모입니다.
         </p>
-        <button class="cta group mt-10" @click="start">
-          <span class="relative z-10">PromptGram 시작하기</span>
-        </button>
+        <div class="hero-rise" style="--wi: 7">
+          <button class="cta group mt-10" @click="start">
+            <span class="relative z-10">PromptGram 시작하기</span>
+          </button>
+        </div>
       </div>
 
       <div class="absolute bottom-8 left-1/2 -translate-x-1/2 text-gray-600 text-xs tracking-widest animate-bounce-slow">
@@ -367,9 +438,21 @@ function start() {
       </div>
     </section>
 
+    <!-- ── 기능 키워드 marquee (타이포 스트립) ── -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <template v-for="n in 2" :key="n">
+          <template v-for="w in MARQUEE" :key="n + w">
+            <span>{{ w }}</span><span class="sep">✦</span>
+          </template>
+        </template>
+      </div>
+    </div>
+
     <!-- ════ S2+S3. Pinned 전환: 변수 템플릿 → AI 다듬기 ════ -->
     <section class="pin-stage">
       <div class="slide slide-1">
+        <span class="ghost-word" aria-hidden="true">TEMPLATE</span>
         <div class="section-inner">
           <div>
             <p class="eyebrow">변수 템플릿</p>
@@ -403,6 +486,7 @@ function start() {
       </div>
 
       <div class="slide slide-2">
+        <span class="ghost-word" aria-hidden="true">AI&nbsp;TUNE</span>
         <div class="section-inner section-inner--reverse">
           <div>
             <p class="eyebrow eyebrow--violet">AI 다듬기 · 태그 추천</p>
@@ -446,18 +530,20 @@ function start() {
       </div>
     </section>
 
-    <!-- ════ S4. 소셜 피드 ════ -->
-    <section class="section">
-      <div class="text-center max-w-2xl mx-auto px-6" data-reveal>
-        <p class="eyebrow">소셜 피드 · 아카이브</p>
-        <h2 class="headline">검증된 프롬프트가<br /><span class="grad-text">흐르는 곳.</span></h2>
+    <!-- ════ S4. 소셜 피드 + 댓글 ════ -->
+    <section class="section overflow-hidden">
+      <span class="ghost-word ghost-word--center" data-ghost aria-hidden="true">COMMUNITY</span>
+      <div class="relative z-[1] text-center max-w-2xl mx-auto px-6" data-reveal>
+        <p class="eyebrow">소셜 피드 · 댓글</p>
+        <h2 class="headline">검증된 프롬프트가 흐르고,<br /><span class="grad-text">대화가 이어지는 곳.</span></h2>
         <p class="body-copy mx-auto">
-          좋아요와 스크랩으로 커뮤니티가 골라낸 프롬프트를 무한 피드로 만나세요.
-          마음에 들면 원클릭 복사, 자랑하고 싶으면 카드 이미지로 공유까지.
+          좋아요와 스크랩으로 커뮤니티가 골라낸 프롬프트를 무한 피드로 만나고,
+          마음에 들면 원클릭 복사. 궁금한 건 댓글로 물어보세요 —
+          더 나은 사용법이 돌아옵니다.
         </p>
       </div>
 
-      <div class="mt-14 grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-4xl mx-auto px-6" data-reveal>
+      <div class="relative z-[1] mt-14 grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-4xl mx-auto px-6" data-reveal>
         <div
           v-for="(card, i) in FEED_PREVIEW"
           :key="card.title"
@@ -469,12 +555,56 @@ function start() {
           <div class="mt-3 flex gap-3 text-[11px] text-gray-500">
             <span class="text-red-400/80">♥ <span :data-count="card.likes">{{ card.likes }}</span></span>
             <span>⧉ <span :data-count="card.copies">{{ card.copies }}</span></span>
+            <span class="text-accent/70">💬 {{ card.comments }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 댓글 버블: 순서대로 pop-in -->
+      <div class="relative z-[1] mt-12 max-w-md mx-auto px-6 space-y-3" data-pop-group>
+        <div v-for="c in COMMENTS_DEMO" :key="c.nick" class="bubble">
+          <div class="bubble-avatar">{{ c.nick[0] }}</div>
+          <div class="min-w-0">
+            <p class="text-[11px] text-gray-500 light:text-slate-400">
+              <span class="font-semibold text-gray-300 light:text-slate-600">{{ c.nick }}</span>
+              · {{ c.time }}
+              <span v-if="c.edited" class="text-gray-600 light:text-slate-400">(수정됨)</span>
+            </p>
+            <p class="mt-0.5 text-[13px] text-gray-200 light:text-slate-700">{{ c.text }}</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ════ S5. 최종 CTA ════ -->
+    <!-- ════ S5. 카드 이미지 공유 ════ -->
+    <section class="section overflow-hidden">
+      <span class="ghost-word ghost-word--center" data-ghost aria-hidden="true">SHARE</span>
+      <div class="section-inner relative z-[1]">
+        <div data-reveal>
+          <p class="eyebrow eyebrow--violet">카드 이미지 공유</p>
+          <h2 class="headline">당신의 프롬프트를,<br /><span class="grad-text">작품처럼.</span></h2>
+          <p class="body-copy">
+            다운로드 버튼 한 번이면 프롬프트가 브랜드 카드 이미지가 됩니다.
+            팀 채팅에, SNS에 — 스크린샷보다 훨씬 근사하게 자랑하세요.
+          </p>
+          <p class="mt-6 inline-flex items-center gap-2 rounded-full border border-white/15 light:border-slate-300 px-4 py-2 text-xs text-gray-400 light:text-slate-500">
+            <svg class="w-4 h-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            카드에서 바로 PNG 다운로드
+          </p>
+        </div>
+
+        <div class="demo-wrap" data-reveal>
+          <div class="demo-glow demo-glow--violet" aria-hidden="true"></div>
+          <div class="share-visual">
+            <ShareCard :prompt="SHARE_DEMO" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ S6. 최종 CTA ════ -->
     <section class="relative min-h-[70vh] flex flex-col items-center justify-center text-center px-6">
       <div class="cta-orb" aria-hidden="true"></div>
       <div class="relative z-10" data-reveal>
@@ -524,6 +654,122 @@ function start() {
   opacity: 0.7;
 }
 
+/* ── Hero 등장: 단어 단위 stagger rise ── */
+.hero-rise {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(26px);
+  animation: hero-rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-delay: calc(120ms + var(--wi, 0) * 95ms);
+}
+/* Vue의 whitespace condense로 사라진 단어 간격 복원 */
+h1 .hero-rise:not(:last-child) {
+  margin-right: 0.22em;
+}
+p.hero-rise,
+div.hero-rise {
+  display: block;
+}
+@keyframes hero-rise {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── 기능 키워드 marquee ── */
+.marquee {
+  position: relative;
+  overflow: hidden;
+  padding: 1.15rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.marquee-track {
+  display: flex;
+  align-items: center;
+  gap: 2.2rem;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+  will-change: transform;
+}
+.marquee-track span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #64748b;
+  white-space: nowrap;
+}
+.marquee-track .sep {
+  color: #3b96ff;
+  font-size: 0.6rem;
+}
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ── 초대형 ghost 타이포 (섹션 배경 워드마크) ── */
+.ghost-word {
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(4.5rem, 13vw, 10.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(148, 163, 184, 0.16);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+.ghost-word--center {
+  top: 4%;
+}
+
+/* ── 댓글 버블 ── */
+.bubble {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  padding: 0.8rem 1rem;
+  text-align: left;
+}
+.bubble-avatar {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #0070f3, #a855f7);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── 공유 카드 비주얼 (스크롤로 기울기 정돈) ── */
+.share-visual {
+  position: relative;
+  will-change: transform;
+  filter: drop-shadow(0 30px 60px rgba(80, 60, 220, 0.25));
+}
+@media (max-width: 640px) {
+  .share-visual {
+    transform-origin: top left;
+    scale: 0.62;
+    margin-bottom: -40%;
+  }
+}
+
 /* ── 공통 섹션 레이아웃 ── */
 .section {
   position: relative;
@@ -551,6 +797,7 @@ function start() {
 }
 @media (prefers-reduced-motion: reduce) {
   .slide {
+    position: relative;
     padding: 6rem 0;
   }
 }
@@ -573,6 +820,8 @@ function start() {
   50% { opacity: 0; }
 }
 .section-inner {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 3.5rem;
   align-items: center;
@@ -818,65 +1067,19 @@ function start() {
   .demo-var,
   .cta-orb,
   .animate-bounce-slow,
-  .type-caret {
+  .type-caret,
+  .marquee-track {
     animation: none;
+  }
+  .hero-rise {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
 
-/* ══ 라이트 모드 오버라이드 ══ */
-:global(.light) .landing {
-  background: #f5f7fb;
-}
+/* 랜딩은 항상 다크 (라이트 설정은 router에서 suspend됨) */
 .hero-vignette {
   background: radial-gradient(ellipse at center, transparent 30%, #0a0a0a 92%);
-}
-:global(.light) .hero-vignette {
-  background: radial-gradient(ellipse at center, transparent 30%, #f5f7fb 92%);
-}
-:global(.light) .aurora-a,
-:global(.light) .aurora-b,
-:global(.light) .aurora-c {
-  opacity: 0.5;
-}
-:global(.light) .gcard {
-  border-color: rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.75);
-}
-:global(.light) .gcard-title {
-  color: #334155;
-}
-:global(.light) .gcard-text {
-  color: #64748b;
-}
-:global(.light) .gcard-badge {
-  color: #475569;
-  background: rgba(15, 23, 42, 0.06);
-}
-:global(.light) .var-chip {
-  text-shadow: 0 0 26px rgba(0, 112, 243, 0.3);
-}
-:global(.light) .body-copy {
-  color: #475569;
-}
-:global(.light) .demo-card {
-  border-color: rgba(15, 23, 42, 0.1);
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 20px 50px rgba(30, 50, 120, 0.12);
-}
-:global(.light) .demo-card--ai {
-  border-color: rgba(124, 58, 237, 0.35);
-  box-shadow: 0 0 30px rgba(124, 58, 237, 0.12), 0 20px 50px rgba(30, 50, 120, 0.12);
-}
-:global(.light) .demo-card .text-gray-200,
-:global(.light) .demo-card .text-gray-300 {
-  color: #334155;
-}
-:global(.light) .reason-chip {
-  color: #7c3aed;
-  border-color: rgba(124, 58, 237, 0.4);
-}
-:global(.light) .mini-card {
-  border-color: rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.8);
 }
 </style>

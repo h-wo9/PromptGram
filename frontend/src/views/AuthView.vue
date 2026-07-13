@@ -123,14 +123,6 @@ async function submit() {
 .auth-vignette {
   background: radial-gradient(ellipse at center, transparent 35%, #0a0a0a 95%);
 }
-:global(.light) .auth-vignette {
-  background: radial-gradient(ellipse at center, transparent 35%, #f5f7fb 95%);
-}
-:global(.light) .auth-grid {
-  background-image:
-    linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
-}
 
 /* ── 배경 대기 조명: 천천히 떠다니는 blue/violet blob (transform만) ── */
 .auth-blob {

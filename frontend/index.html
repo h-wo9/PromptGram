@@ -15,8 +15,11 @@
   <body>
     <div id="app"></div>
     <script>
-      // FOUC 방지: 앱 로드 전에 저장된 테마 적용
-      if (localStorage.getItem('pg_theme') === 'light')
+      // FOUC 방지: 앱 로드 전에 저장된 테마 적용 (랜딩·로그인은 항상 다크)
+      if (
+        localStorage.getItem('pg_theme') === 'light' &&
+        !['/', '/auth'].includes(location.pathname)
+      )
         document.documentElement.classList.add('light')
     </script>
     <script type="module" src="/src/main.js"></script>

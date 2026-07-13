@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { suspendLightTheme } from '../composables/theme'
 import { useAuthStore } from '../stores/auth'
 
 const TITLES = {
@@ -67,6 +68,8 @@ router.beforeEach(async (to) => {
 router.afterEach((to) => {
   const title = TITLES[to.name]
   document.title = title ? `${title} · PromptGram` : 'PromptGram'
+  // 랜딩·로그인은 항상 다크 (라이트 설정은 유지하되 해당 페이지에서만 해제)
+  suspendLightTheme(to.name === 'landing' || to.name === 'auth')
 })
 
 export default router
