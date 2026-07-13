@@ -1,8 +1,13 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import gsap from 'gsap'
+import { createComment, deleteComment, fetchComments, updateComment } from '../api/comments'
+import { confirmDialog } from '../composables/confirm'
 import { lockScroll, unlockScroll } from '../composables/scrollLock'
+import { showToast } from '../composables/toast'
+import { useAuthStore } from '../stores/auth'
 import { splitVariableSegments } from '../utils/variables'
+import { timeAgo } from '../utils/time'
 import VariableFillPanel from './VariableFillPanel.vue'
 
 const props = defineProps({
@@ -26,6 +31,72 @@ const dateText = computed(() =>
   })
 )
 
+// ── 댓글 ──
+const auth = useAuthStore()
+const comments = ref([])
+const commentsLoading = ref(true)
+const newComment = ref('')
+const posting = ref(false)
+const editingId = ref(null)
+const editText = ref('')
+
+async function loadComments() {
+  commentsLoading.value = true
+  try {
+    comments.value = await fetchComments(props.prompt.id)
+  } finally {
+    commentsLoading.value = false
+  }
+}
+
+async function postComment() {
+  const content = newComment.value.trim()
+  if (!content || posting.value) return
+  posting.value = true
+  try {
+    const created = await createComment(props.prompt.id, content)
+    comments.value.unshift(created)
+    newComment.value = ''
+  } catch {
+    showToast('댓글 등록에 실패했어요', 'error')
+  } finally {
+    posting.value = false
+  }
+}
+
+function startEdit(comment) {
+  editingId.value = comment.id
+  editText.value = comment.content
+}
+
+async function saveEdit(comment) {
+  const content = editText.value.trim()
+  if (!content) return
+  try {
+    const updated = await updateComment(comment.id, content)
+    Object.assign(comment, updated)
+    editingId.value = null
+  } catch {
+    showToast('댓글 수정에 실패했어요', 'error')
+  }
+}
+
+async function removeComment(comment) {
+  const ok = await confirmDialog({
+    title: '댓글을 삭제할까요?',
+    confirmText: '삭제',
+    danger: true,
+  })
+  if (!ok) return
+  try {
+    await deleteComment(comment.id)
+    comments.value = comments.value.filter((c) => c.id !== comment.id)
+    showToast('댓글이 삭제됐어요')
+  } catch {
+    showToast('댓글 삭제에 실패했어요', 'error')
+  }
+}
+
 function flipFrom() {
   const from = props.sourceEl.getBoundingClientRect()
   const to = cardEl.value.getBoundingClientRect()
@@ -40,6 +111,7 @@ function flipFrom() {
 onMounted(() => {
   lockScroll()
   window.addEventListener('keydown', onKey)
+  loadComments()
   if (reduced || !props.sourceEl || !cardEl.value) return
   gsap.set(cardEl.value, { transformOrigin: 'top left', ...flipFrom(), opacity: 0.5 })
   gsap.to(cardEl.value, { x: 0, y: 0, scaleX: 1, scaleY: 1, opacity: 1, duration: 0.38, ease: 'power3.out' })
@@ -184,6 +256,78 @@ function onKey(e) {
           @copied="emit('copied', prompt)"
         />
       </div>
+
+      <!-- ── 댓글 ── -->
+      <section class="mt-7 border-t border-white/10 light:border-slate-200 pt-5">
+        <h3 class="text-sm font-bold">
+          댓글 <span class="text-gray-500 light:text-slate-400">{{ comments.length }}</span>
+        </h3>
+
+        <!-- 입력 -->
+        <form v-if="auth.isLoggedIn" class="mt-3 flex gap-2" @submit.prevent="postComment">
+          <input
+            v-model="newComment"
+            maxlength="500"
+            placeholder="댓글을 남겨보세요"
+            class="flex-1 rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-3.5 py-2.5 text-sm focus:border-accent focus:outline-none"
+          />
+          <button
+            type="submit"
+            :disabled="posting || !newComment.trim()"
+            class="rounded-lg bg-accent hover:bg-blue-500 transition-colors px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+          >
+            등록
+          </button>
+        </form>
+        <p v-else class="mt-3 text-sm text-gray-500 light:text-slate-400">
+          <router-link to="/auth" class="text-accent hover:underline">로그인</router-link>하고 댓글을 남겨보세요
+        </p>
+
+        <!-- 목록 -->
+        <p v-if="commentsLoading" class="mt-4 text-sm text-gray-500 light:text-slate-400">댓글 불러오는 중…</p>
+        <ul v-else-if="comments.length" class="mt-4 space-y-4">
+          <li v-for="c in comments" :key="c.id" class="flex gap-2.5">
+            <div
+              class="w-7 h-7 shrink-0 rounded-full bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center text-[11px] font-bold text-white"
+            >
+              {{ c.author.nickname[0] }}
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-xs text-gray-400 light:text-slate-500">
+                <span class="font-semibold text-gray-200 light:text-slate-700">{{ c.author.nickname }}</span>
+                · {{ timeAgo(c.created_at) }}
+                <span v-if="c.updated_at" class="text-gray-600 light:text-slate-400">(수정됨)</span>
+              </p>
+
+              <template v-if="editingId === c.id">
+                <input
+                  v-model="editText"
+                  maxlength="500"
+                  class="mt-1.5 w-full rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  @keydown.enter.prevent="saveEdit(c)"
+                  @keydown.esc="editingId = null"
+                />
+                <div class="mt-1.5 flex gap-2 text-xs">
+                  <button class="text-accent font-semibold" @click="saveEdit(c)">저장</button>
+                  <button class="text-gray-500 hover:text-gray-300 light:hover:text-slate-700" @click="editingId = null">취소</button>
+                </div>
+              </template>
+              <p v-else class="mt-1 text-sm text-gray-300 light:text-slate-600 whitespace-pre-wrap break-words">
+                {{ c.content }}
+              </p>
+            </div>
+
+            <div
+              v-if="auth.user && c.author.id === auth.user.id && editingId !== c.id"
+              class="shrink-0 flex gap-2 text-xs text-gray-500"
+            >
+              <button class="hover:text-white light:hover:text-slate-900" @click="startEdit(c)">수정</button>
+              <button class="hover:text-red-400" @click="removeComment(c)">삭제</button>
+            </div>
+          </li>
+        </ul>
+        <p v-else class="mt-4 text-sm text-gray-600 light:text-slate-400">첫 댓글을 남겨보세요</p>
+      </section>
     </article>
   </div>
 </template>
