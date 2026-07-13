@@ -9,10 +9,28 @@ const props = defineProps({
   showVisibility: { type: Boolean, default: false },
   editable: { type: Boolean, default: false },
 })
-const emit = defineEmits(['like', 'bookmark', 'copied', 'tag', 'edit', 'remove'])
+const emit = defineEmits(['like', 'bookmark', 'copied', 'tag', 'edit', 'remove', 'open'])
 
 const showCopy = ref(false)
 const justCopied = ref(false)
+const rootEl = ref(null)
+
+// 긴 프롬프트는 카드에서 잘라 보여주고 '자세히 보기'로 유도
+const isLong = computed(
+  () =>
+    props.prompt.prompt_text.length > 220 ||
+    (props.prompt.prompt_text.match(/\n/g) || []).length > 5
+)
+
+function openDetail() {
+  emit('open', { prompt: props.prompt, el: rootEl.value })
+}
+
+function onCardClick(e) {
+  // 버튼·입력 등 인터랙티브 요소 클릭은 상세 열기에서 제외
+  if (e.target.closest('button, input, a, textarea, label')) return
+  openDetail()
+}
 
 const segments = computed(() => {
   const parts = []
@@ -83,7 +101,9 @@ async function downloadImage() {
 
 <template>
   <article
-    class="rounded-2xl border border-white/10 bg-white/[0.04] light:border-slate-200 light:bg-white light:backdrop-blur-none backdrop-blur-sm p-5 transition-[border-color,box-shadow,transform] duration-300 hover:border-accent/35 hover:-translate-y-0.5 hover:shadow-[0_10px_36px_rgba(50,80,220,0.16)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+    ref="rootEl"
+    class="cursor-pointer rounded-2xl border border-white/10 bg-white/[0.04] light:border-slate-200 light:bg-white light:backdrop-blur-none backdrop-blur-sm p-5 transition-[border-color,box-shadow,transform] duration-300 hover:border-accent/35 hover:-translate-y-0.5 hover:shadow-[0_10px_36px_rgba(50,80,220,0.16)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+    @click="onCardClick"
   >
     <header class="flex items-center gap-2.5">
       <img
@@ -117,12 +137,22 @@ async function downloadImage() {
 
     <h3 class="mt-3 font-bold leading-snug">{{ prompt.title }}</h3>
 
-    <p class="mt-2 text-sm text-gray-300 light:text-slate-600 whitespace-pre-wrap break-words leading-relaxed">
+    <p
+      class="mt-2 text-sm text-gray-300 light:text-slate-600 whitespace-pre-wrap break-words leading-relaxed"
+      :class="{ 'line-clamp-6': isLong }"
+    >
       <template v-for="(seg, i) in segments" :key="i">
         <span v-if="seg.isVar" class="text-accent font-semibold">{{ seg.text }}</span>
         <template v-else>{{ seg.text }}</template>
       </template>
     </p>
+    <button
+      v-if="isLong"
+      class="mt-1.5 text-xs font-semibold text-accent hover:underline underline-offset-2"
+      @click="openDetail"
+    >
+      자세히 보기
+    </button>
 
     <div v-if="prompt.tags.length" class="mt-3 flex flex-wrap gap-1.5">
       <button

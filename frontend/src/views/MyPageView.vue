@@ -17,12 +17,14 @@ import AuroraBackground from '../components/AuroraBackground.vue'
 import SkeletonCard from '../components/SkeletonCard.vue'
 import MasonryGrid from '../components/MasonryGrid.vue'
 import PromptCard from '../components/PromptCard.vue'
+import PromptDetailModal from '../components/PromptDetailModal.vue'
 import ThemeToggle from '../components/ThemeToggle.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
 
 const tab = ref('mine')
+const detail = ref(null) // { prompt, el }
 const mine = ref([])
 const saved = ref([])
 const loading = ref(true)
@@ -253,6 +255,7 @@ async function logout() {
               @tag="(t) => router.push({ name: 'feed', query: { tag: t } })"
               @edit="(p) => router.push({ name: 'edit', params: { id: p.id } })"
               @remove="onRemove"
+              @open="detail = $event"
             />
           </MasonryGrid>
           <p v-if="tab === 'mine' && !mine.length" class="text-center text-sm text-gray-500 py-12">
@@ -267,6 +270,7 @@ async function logout() {
               @bookmark="onBookmark"
               @copied="onCopied"
               @tag="(t) => router.push({ name: 'feed', query: { tag: t } })"
+              @open="detail = $event"
             />
           </MasonryGrid>
           <p v-if="tab === 'saved' && !saved.length" class="text-center text-sm text-gray-500 py-12">
@@ -275,5 +279,15 @@ async function logout() {
         </template>
       </div>
     </main>
+
+    <PromptDetailModal
+      v-if="detail"
+      :prompt="detail.prompt"
+      :source-el="detail.el"
+      @close="detail = null"
+      @like="onLike"
+      @bookmark="onBookmark"
+      @copied="onCopied"
+    />
   </div>
 </template>

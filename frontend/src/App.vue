@@ -1,14 +1,8 @@
 <script setup>
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import ToastHost from './components/ToastHost.vue'
-
 // zoom 전환 중 scale된 페이지가 viewport를 넘치며 scrollbar가 깜빡이는 것 방지
-function lockScroll() {
-  document.documentElement.style.overflow = 'hidden'
-}
-function unlockScroll() {
-  document.documentElement.style.overflow = ''
-}
+import { lockScroll, unlockScroll } from './composables/scrollLock'
 </script>
 
 <template>

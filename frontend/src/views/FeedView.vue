@@ -13,6 +13,7 @@ import { showToast } from '../composables/toast'
 import AuroraBackground from '../components/AuroraBackground.vue'
 import MasonryGrid from '../components/MasonryGrid.vue'
 import PromptCard from '../components/PromptCard.vue'
+import PromptDetailModal from '../components/PromptDetailModal.vue'
 import SkeletonCard from '../components/SkeletonCard.vue'
 import ThemeToggle from '../components/ThemeToggle.vue'
 
@@ -25,6 +26,7 @@ const auth = useAuthStore()
 
 const searchInput = ref('')
 const mobileSearch = ref(false)
+const detail = ref(null) // { prompt, el } — 카드 확대 상세
 const items = ref([])
 const nextCursor = ref(null)
 const sort = ref('latest')
@@ -269,6 +271,7 @@ async function logout() {
             @bookmark="onBookmark"
             @copied="onCopied"
             @tag="(t) => (tag = t)"
+            @open="detail = $event"
           />
         </MasonryGrid>
       </transition>
@@ -282,6 +285,16 @@ async function logout() {
         아직 프롬프트가 없어요
       </p>
     </main>
+
+    <PromptDetailModal
+      v-if="detail"
+      :prompt="detail.prompt"
+      :source-el="detail.el"
+      @close="detail = null"
+      @like="onLike"
+      @bookmark="onBookmark"
+      @copied="onCopied"
+    />
   </div>
 </template>
 

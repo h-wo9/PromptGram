@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { lockScroll } from '../composables/scrollLock'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -280,7 +281,7 @@ function start() {
     router.push({ name: 'auth' })
     return
   }
-  document.documentElement.style.overflow = 'hidden'
+  lockScroll()
   const originY = window.scrollY + window.innerHeight / 2
   gsap.to(stage.value, {
     scale: 1.18,
