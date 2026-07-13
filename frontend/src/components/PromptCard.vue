@@ -60,7 +60,7 @@ async function downloadImage() {
 
 <template>
   <article
-    class="rounded-2xl border border-white/10 bg-white/[0.04] light:border-slate-200 light:bg-white backdrop-blur-sm p-5 transition-[border-color,box-shadow,transform] duration-300 hover:border-accent/35 hover:-translate-y-0.5 hover:shadow-[0_10px_36px_rgba(50,80,220,0.16)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+    class="rounded-2xl border border-white/10 bg-white/[0.04] light:border-slate-200 light:bg-white light:backdrop-blur-none backdrop-blur-sm p-5 transition-[border-color,box-shadow,transform] duration-300 hover:border-accent/35 hover:-translate-y-0.5 hover:shadow-[0_10px_36px_rgba(50,80,220,0.16)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
   >
     <header class="flex items-center gap-2.5">
       <img

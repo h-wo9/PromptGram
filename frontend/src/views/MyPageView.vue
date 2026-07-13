@@ -99,7 +99,7 @@ async function logout() {
 <template>
   <div class="min-h-screen">
     <AuroraBackground />
-    <header class="sticky top-0 z-20 border-b border-white/10 bg-night/80 light:border-slate-200 light:bg-white/75 backdrop-blur-xl">
+    <header class="sticky top-0 z-20 border-b border-white/10 bg-night/80 backdrop-blur-xl light:border-slate-200 light:bg-white light:backdrop-blur-none">
       <div class="max-w-6xl mx-auto px-4 h-14 flex items-center gap-4">
         <router-link to="/feed" class="text-lg font-extrabold tracking-tight">
           Prompt<span class="text-accent">Gram</span>
@@ -118,7 +118,7 @@ async function logout() {
 
     <main class="relative z-10 max-w-6xl mx-auto px-4 py-8">
       <!-- 프로필 -->
-      <section class="rounded-2xl border border-white/10 bg-white/[0.04] light:border-slate-200 light:bg-white backdrop-blur-sm p-6 shadow-[0_12px_50px_rgba(40,60,180,0.1)]">
+      <section class="rounded-2xl border border-white/10 bg-white/[0.04] light:border-slate-200 light:bg-white light:backdrop-blur-none backdrop-blur-sm p-6 shadow-[0_12px_50px_rgba(40,60,180,0.1)]">
         <div v-if="!editingProfile" class="flex items-center gap-4">
           <img
             v-if="auth.user?.profile_image_url"

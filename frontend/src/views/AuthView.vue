@@ -50,7 +50,7 @@ async function submit() {
     </div>
 
     <div
-      class="relative w-full max-w-md rounded-2xl border border-white/10 bg-white/5 light:border-slate-200 light:bg-white/80 backdrop-blur-xl p-8 shadow-2xl shadow-[0_20px_80px_rgba(40,60,180,0.18)]"
+      class="relative w-full max-w-md rounded-2xl border border-white/10 bg-white/5 light:border-slate-200 light:bg-white light:backdrop-blur-none backdrop-blur-xl p-8 shadow-2xl shadow-[0_20px_80px_rgba(40,60,180,0.18)]"
     >
       <router-link to="/" class="block text-center text-2xl font-extrabold tracking-tight">
         Prompt<span class="text-accent">Gram</span>

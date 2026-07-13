@@ -305,7 +305,7 @@ function start() {
     <!-- ── 상단 고정 nav (스크롤 시 glass bar) ── -->
     <header
       class="fixed top-0 inset-x-0 z-40 flex items-center justify-between px-6 sm:px-10 h-16 transition-all duration-300"
-      :class="scrolled ? 'bg-night/70 light:bg-white/70 backdrop-blur-md border-b border-white/10 light:border-slate-200' : 'border-b border-transparent'"
+      :class="scrolled ? 'bg-night/70 backdrop-blur-md light:bg-white light:backdrop-blur-none border-b border-white/10 light:border-slate-200' : 'border-b border-transparent'"
     >
       <span class="text-base font-extrabold tracking-tight">Prompt<span class="text-accent">Gram</span></span>
       <router-link
