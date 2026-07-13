@@ -605,7 +605,7 @@ function start() {
     </section>
 
     <!-- ════ S6. 최종 CTA ════ -->
-    <section class="relative min-h-[70vh] flex flex-col items-center justify-center text-center px-6">
+    <section class="relative min-h-screen flex flex-col items-center justify-center text-center px-6">
       <div class="cta-orb" aria-hidden="true"></div>
       <div class="relative z-10" data-reveal>
         <h2 class="headline">지금, 첫 프롬프트를<br /><span class="grad-text">아카이브하세요.</span></h2>
