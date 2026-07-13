@@ -28,6 +28,11 @@ const followBusy = ref(false)
 const isMe = computed(() => auth.user && profile.value && auth.user.id === profile.value.id)
 
 async function load(id) {
+  // 내 계정 프로필은 마이페이지로
+  if (auth.user && id === auth.user.id) {
+    router.replace({ name: 'mypage' })
+    return
+  }
   loading.value = true
   notFound.value = false
   followList.value = null
@@ -77,6 +82,10 @@ async function onFollow() {
 
 function goProfile(id) {
   followList.value = null
+  if (auth.user && id === auth.user.id) {
+    router.push({ name: 'mypage' })
+    return
+  }
   if (Number(route.params.id) !== id) router.push({ name: 'profile', params: { id } })
 }
 

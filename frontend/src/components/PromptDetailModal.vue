@@ -146,12 +146,16 @@ function onKey(e) {
   if (e.key === 'Escape') close()
 }
 
-// 게시자·댓글 작성자 클릭 → 프로필 페이지
+// 게시자·댓글 작성자 클릭 → 프로필 (내 계정이면 마이페이지로)
 const route = useRoute()
 const router = useRouter()
 
 function goProfile(userId) {
   emit('close')
+  if (auth.user && userId === auth.user.id) {
+    if (route.name !== 'mypage') router.push({ name: 'mypage' })
+    return
+  }
   if (!(route.name === 'profile' && Number(route.params.id) === userId)) {
     router.push({ name: 'profile', params: { id: userId } })
   }

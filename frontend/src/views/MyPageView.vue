@@ -10,10 +10,12 @@ import {
   toggleBookmark,
   toggleLike,
 } from '../api/prompts'
+import { fetchUserProfile } from '../api/users'
 import { confirmDialog } from '../composables/confirm'
 import { feedStale } from '../composables/feedSignal'
 import { showToast } from '../composables/toast'
 import AuroraBackground from '../components/AuroraBackground.vue'
+import FollowListModal from '../components/FollowListModal.vue'
 import SkeletonCard from '../components/SkeletonCard.vue'
 import MasonryGrid from '../components/MasonryGrid.vue'
 import PromptCard from '../components/PromptCard.vue'
@@ -32,6 +34,10 @@ const publicMine = computed(() => mine.value.filter((p) => p.is_public))
 const privateMine = computed(() => mine.value.filter((p) => !p.is_public))
 const loading = ref(true)
 
+const followerCount = ref(0)
+const followingCount = ref(0)
+const followList = ref(null) // 'followers' | 'following'
+
 const editingProfile = ref(false)
 const nickname = ref('')
 const bio = ref('')
@@ -41,13 +47,23 @@ const profileError = ref('')
 async function load() {
   loading.value = true
   try {
-    ;[mine.value, saved.value] = await Promise.all([
+    const [minePrompts, savedPrompts, profile] = await Promise.all([
       fetchMyPrompts(),
       fetchMyBookmarks(),
+      fetchUserProfile(auth.user.id),
     ])
+    mine.value = minePrompts
+    saved.value = savedPrompts
+    followerCount.value = profile.follower_count
+    followingCount.value = profile.following_count
   } finally {
     loading.value = false
   }
+}
+
+function goProfile(id) {
+  followList.value = null
+  if (id !== auth.user.id) router.push({ name: 'profile', params: { id } })
 }
 
 onMounted(load)
@@ -172,6 +188,14 @@ async function logout() {
             <p class="text-sm text-gray-400 truncate">
               {{ auth.user?.bio || '한 줄 소개가 아직 없어요' }}
             </p>
+            <div class="mt-1.5 flex gap-4 text-sm">
+              <button class="hover:text-accent transition-colors" @click="followList = 'followers'">
+                팔로워 <strong>{{ followerCount }}</strong>
+              </button>
+              <button class="hover:text-accent transition-colors" @click="followList = 'following'">
+                팔로잉 <strong>{{ followingCount }}</strong>
+              </button>
+            </div>
           </div>
           <button
             class="rounded-lg border border-white/20 light:border-slate-300 hover:border-accent hover:text-accent transition-colors px-3.5 py-1.5 text-sm"
@@ -316,6 +340,13 @@ async function logout() {
       @like="onLike"
       @bookmark="onBookmark"
       @copied="onCopied"
+    />
+    <FollowListModal
+      v-if="followList"
+      :user-id="auth.user.id"
+      :type="followList"
+      @close="followList = null"
+      @navigate="goProfile"
     />
   </div>
 </template>
