@@ -131,7 +131,7 @@ const afterTyping = createTyping(
     { t: '[수신자]', v: true },
     { t: '와의 관계를 고려해 정중한 비즈니스 메일로 재작성하세요…' },
   ],
-  { speed: 24 }
+  { speed: 24, loop: true }
 )
 
 function buildCards(count, layerSeed) {
@@ -201,21 +201,21 @@ onMounted(() => {
       scrollTrigger: {
         trigger: '.pin-stage',
         start: 'top top',
-        end: '+=160%',
+        end: '+=240%', // 변수 템플릿에 더 오래 머물도록 pin 구간 연장
         scrub: 0.6,
         pin: true,
       },
     })
     pinTl
-      .to('.slide-1', { autoAlpha: 0, y: -70, ease: 'power1.in', duration: 1 }, 0.55)
+      .to('.slide-1', { autoAlpha: 0, y: -70, ease: 'power1.in', duration: 1 }, 1.3)
       .fromTo(
         '.slide-2',
         { autoAlpha: 0, y: 90 },
         { autoAlpha: 1, y: 0, ease: 'power1.out', duration: 1 },
-        1.25
+        2.05
       )
-      .call(() => afterTyping.start(350), [], 1.7) // AFTER 카드가 보이면 타이핑 시작 (1회)
-      .to({}, { duration: 0.45 }) // 전환 후 잠깐 머무름
+      .call(() => afterTyping.start(350), [], 2.5) // AFTER 카드가 보이면 타이핑 시작 (반복)
+      .to({}, { duration: 0.7 }) // 전환 후 머무름
 
     // 변수 템플릿 박스: 섹션이 화면에 들어올 때 비어 있다가 타이핑 시작
     ScrollTrigger.create({
@@ -531,7 +531,7 @@ function start() {
     </section>
 
     <!-- ════ S4. 소셜 피드 + 댓글 ════ -->
-    <section class="section overflow-hidden">
+    <section class="section section--tall overflow-hidden">
       <span class="ghost-word ghost-word--center" data-ghost aria-hidden="true">COMMUNITY</span>
       <div class="relative z-[1] text-center max-w-2xl mx-auto px-6" data-reveal>
         <p class="eyebrow">소셜 피드 · 댓글</p>
@@ -577,7 +577,7 @@ function start() {
     </section>
 
     <!-- ════ S5. 카드 이미지 공유 ════ -->
-    <section class="section overflow-hidden">
+    <section class="section section--tall overflow-hidden">
       <span class="ghost-word ghost-word--center" data-ghost aria-hidden="true">SHARE</span>
       <div class="section-inner relative z-[1]">
         <div data-reveal>
@@ -774,6 +774,14 @@ div.hero-rise {
 .section {
   position: relative;
   padding: 8.5rem 0;
+}
+/* 피드·공유 섹션: 더 오래 머물도록 세로 여백 확대 */
+.section--tall {
+  min-height: 115vh;
+  padding: 14rem 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 /* ── Pinned 전환 스테이지 (모션 허용 시 슬라이드를 겹쳐두고 GSAP이 crossfade) ── */

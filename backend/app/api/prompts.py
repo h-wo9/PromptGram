@@ -147,7 +147,7 @@ async def bookmark_prompt(prompt_id: int, user: CurrentUser, db: DbDep):
 @router.post("/{prompt_id}/copy", response_model=PromptOut)
 async def copy_prompt(prompt_id: int, db: DbDep, user: OptionalUser):
     prompt = await _get_visible(db, prompt_id, user)
-    await prompt_crud.increase_copy_count(db, prompt)
+    await prompt_crud.increase_copy_count(db, prompt, user.id if user else None)
     liked, bookmarked = await prompt_crud.get_interaction_ids(
         db, user.id if user else None, [prompt.id]
     )

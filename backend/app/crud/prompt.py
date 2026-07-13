@@ -4,7 +4,7 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models import Bookmark, Like, Prompt, PromptTag, Tag
+from app.models import Bookmark, CopyRecord, Like, Prompt, PromptTag, Tag
 
 
 PROMPT_LOAD_OPTIONS = (
@@ -156,7 +156,13 @@ async def toggle_bookmark(db: AsyncSession, user_id: int, prompt: Prompt) -> boo
     return bookmarked
 
 
-async def increase_copy_count(db: AsyncSession, prompt: Prompt) -> None:
+async def increase_copy_count(db: AsyncSession, prompt: Prompt, user_id: int | None) -> None:
+    """복사는 무제한이지만 copy_count는 계정당 1회만. 비로그인 복사는 카운트 안 함."""
+    if user_id is None:
+        return
+    if await db.get(CopyRecord, (user_id, prompt.id)):
+        return
+    db.add(CopyRecord(user_id=user_id, prompt_id=prompt.id))
     prompt.copy_count += 1
     await db.commit()
 
