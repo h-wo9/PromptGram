@@ -60,7 +60,7 @@ async function downloadImage() {
 
 <template>
   <article
-    class="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm p-5 transition-[border-color,box-shadow,transform] duration-300 hover:border-accent/35 hover:-translate-y-0.5 hover:shadow-[0_10px_36px_rgba(50,80,220,0.16)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+    class="rounded-2xl border border-white/10 bg-white/[0.04] light:border-slate-200 light:bg-white backdrop-blur-sm p-5 transition-[border-color,box-shadow,transform] duration-300 hover:border-accent/35 hover:-translate-y-0.5 hover:shadow-[0_10px_36px_rgba(50,80,220,0.16)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
   >
     <header class="flex items-center gap-2.5">
       <img
@@ -80,7 +80,7 @@ async function downloadImage() {
       </div>
       <span
         v-if="prompt.ai_source"
-        class="shrink-0 rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] text-gray-300"
+        class="shrink-0 rounded-full bg-white/10 text-gray-300 light:bg-slate-900/[0.06] light:text-slate-600 px-2.5 py-0.5 text-[11px]"
       >
         {{ prompt.ai_source }}
       </span>
@@ -94,7 +94,7 @@ async function downloadImage() {
 
     <h3 class="mt-3 font-bold leading-snug">{{ prompt.title }}</h3>
 
-    <p class="mt-2 text-sm text-gray-300 whitespace-pre-wrap break-words leading-relaxed">
+    <p class="mt-2 text-sm text-gray-300 light:text-slate-600 whitespace-pre-wrap break-words leading-relaxed">
       <template v-for="(seg, i) in segments" :key="i">
         <span v-if="seg.isVar" class="text-accent font-semibold">{{ seg.text }}</span>
         <template v-else>{{ seg.text }}</template>
@@ -112,7 +112,7 @@ async function downloadImage() {
       </button>
     </div>
 
-    <footer class="mt-4 flex items-center gap-4 text-sm text-gray-400">
+    <footer class="mt-4 flex items-center gap-4 text-sm text-gray-400 light:text-slate-500">
       <button
         class="flex items-center gap-1 transition-colors"
         :class="prompt.is_liked ? 'text-red-400' : 'hover:text-red-400'"
@@ -143,7 +143,7 @@ async function downloadImage() {
       </span>
       <span class="flex-1"></span>
       <button
-        class="transition-colors hover:text-white"
+        class="transition-colors hover:text-white light:hover:text-slate-900"
         :aria-label="capturing ? '이미지 생성 중' : '카드 이미지 저장'"
         title="카드 이미지 저장"
         :disabled="capturing"
@@ -154,7 +154,7 @@ async function downloadImage() {
         </svg>
       </button>
       <template v-if="editable">
-        <button class="hover:text-white" @click="emit('edit', prompt)">수정</button>
+        <button class="hover:text-white light:hover:text-slate-900" @click="emit('edit', prompt)">수정</button>
         <button class="hover:text-red-400" @click="emit('remove', prompt)">삭제</button>
       </template>
       <button
@@ -165,7 +165,7 @@ async function downloadImage() {
       </button>
     </footer>
 
-    <div v-if="showCopy" class="mt-3 border-t border-white/10 pt-3">
+    <div v-if="showCopy" class="mt-3 border-t border-white/10 light:border-slate-200 pt-3">
       <VariableFillPanel
         :prompt-text="prompt.prompt_text"
         :variables="prompt.variables"

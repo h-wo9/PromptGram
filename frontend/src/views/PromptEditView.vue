@@ -121,7 +121,7 @@ async function submit() {
   <div class="min-h-screen max-w-2xl mx-auto px-4 py-10">
     <div class="flex items-center justify-between">
       <h1 class="text-xl font-bold">{{ editId ? '프롬프트 수정' : '새 프롬프트' }}</h1>
-      <router-link to="/feed" class="text-sm text-gray-400 hover:text-white">← 피드로</router-link>
+      <router-link to="/feed" class="text-sm text-gray-400 hover:text-white light:text-slate-500 light:hover:text-slate-900">← 피드로</router-link>
     </div>
 
     <form class="mt-6 space-y-4" @submit.prevent="submit">
@@ -130,7 +130,7 @@ async function submit() {
         required
         maxlength="100"
         placeholder="제목"
-        class="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-sm focus:border-accent focus:outline-none"
+        class="w-full rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-4 py-3 text-sm focus:border-accent focus:outline-none"
       />
       <div>
         <textarea
@@ -139,10 +139,10 @@ async function submit() {
           maxlength="5000"
           rows="7"
           placeholder="프롬프트 본문 — [변수명] 문법으로 재사용 변수를 지정할 수 있어요"
-          class="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-sm focus:border-accent focus:outline-none"
+          class="w-full rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-4 py-3 text-sm focus:border-accent focus:outline-none"
         ></textarea>
         <div v-if="variables.length" class="mt-2 flex flex-wrap gap-2">
-          <span class="text-xs text-gray-400 self-center">감지된 변수:</span>
+          <span class="text-xs text-gray-400 light:text-slate-500 self-center">감지된 변수:</span>
           <span
             v-for="v in variables"
             :key="v"
@@ -164,7 +164,7 @@ async function submit() {
           <button
             type="button"
             :disabled="suggesting || promptText.trim().length < 5"
-            class="rounded-lg border border-white/20 text-gray-300 hover:border-accent hover:text-accent transition-colors px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
+            class="rounded-lg border border-white/20 text-gray-300 light:border-slate-300 light:text-slate-600 hover:border-accent hover:text-accent transition-colors px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
             @click="runSuggestTags"
           >
             {{ suggesting ? '태그 추천 중…' : '태그 추천' }}
@@ -181,18 +181,18 @@ async function submit() {
           <div class="grid sm:grid-cols-2 gap-3 text-xs">
             <div>
               <p class="text-gray-500 mb-1">Before</p>
-              <p class="whitespace-pre-wrap break-words text-gray-400 rounded-lg bg-white/5 p-2.5">{{ tuneResult.before }}</p>
+              <p class="whitespace-pre-wrap break-words text-gray-400 light:text-slate-500 rounded-lg bg-white/5 light:bg-slate-900/[0.04] p-2.5">{{ tuneResult.before }}</p>
             </div>
             <div>
               <p class="text-gray-500 mb-1">After (제안)</p>
-              <p class="whitespace-pre-wrap break-words text-gray-100 rounded-lg bg-white/5 p-2.5">{{ tuneResult.improved_prompt }}</p>
+              <p class="whitespace-pre-wrap break-words text-gray-100 light:text-slate-800 rounded-lg bg-white/5 light:bg-slate-900/[0.04] p-2.5">{{ tuneResult.improved_prompt }}</p>
             </div>
           </div>
-          <ul class="text-xs text-gray-400 space-y-1 list-disc list-inside">
+          <ul class="text-xs text-gray-400 light:text-slate-600 space-y-1 list-disc list-inside">
             <li v-for="(r, i) in tuneResult.reasons" :key="i">{{ r }}</li>
           </ul>
           <div class="flex gap-2 justify-end">
-            <button type="button" class="px-3 py-1.5 text-xs text-gray-400 hover:text-white" @click="tuneResult = null">
+            <button type="button" class="px-3 py-1.5 text-xs text-gray-400 hover:text-white light:hover:text-slate-900" @click="tuneResult = null">
               닫기
             </button>
             <button
@@ -207,7 +207,7 @@ async function submit() {
 
         <!-- AI 추천 태그 chip -->
         <div v-if="suggestedTags.length" class="mt-3 flex flex-wrap items-center gap-2">
-          <span class="text-xs text-gray-400">추천 태그 (눌러서 선택):</span>
+          <span class="text-xs text-gray-400 light:text-slate-500">추천 태그 (눌러서 선택):</span>
           <button
             v-for="t in suggestedTags"
             :key="t"
@@ -215,7 +215,7 @@ async function submit() {
             class="rounded-full px-2.5 py-0.5 text-xs border transition-colors"
             :class="tags.includes(t)
               ? 'bg-accent text-white border-accent'
-              : 'bg-white/5 text-gray-300 border-white/15 hover:border-accent hover:text-accent'"
+              : 'bg-white/5 text-gray-300 border-white/15 light:bg-white light:text-slate-600 light:border-slate-300 hover:border-accent hover:text-accent'"
             @click="toggleSuggestedTag(t)"
           >
             #{{ t }}
@@ -227,12 +227,12 @@ async function submit() {
         rows="4"
         maxlength="20000"
         placeholder="AI 응답 결과 (선택)"
-        class="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-sm focus:border-accent focus:outline-none"
+        class="w-full rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-4 py-3 text-sm focus:border-accent focus:outline-none"
       ></textarea>
       <div class="flex gap-3">
         <select
           v-model="aiSource"
-          class="rounded-lg bg-white/5 border border-white/10 px-3 py-2.5 text-sm focus:border-accent focus:outline-none [&>option]:bg-night"
+          class="rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-3 py-2.5 text-sm focus:border-accent focus:outline-none [&>option]:bg-night light:[&>option]:bg-white"
         >
           <option value="">대상 모델 (선택)</option>
           <option>ChatGPT</option>
@@ -243,10 +243,10 @@ async function submit() {
         <input
           v-model="tagInput"
           placeholder="#태그 공백/쉼표 구분 (최대 10개)"
-          class="flex-1 rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
+          class="flex-1 rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
         />
       </div>
-      <label class="flex items-center gap-2 text-sm text-gray-300">
+      <label class="flex items-center gap-2 text-sm text-gray-300 light:text-slate-600">
         <input v-model="isPublic" type="checkbox" class="accent-accent w-4 h-4" />
         공개 (끄면 나만 볼 수 있어요)
       </label>

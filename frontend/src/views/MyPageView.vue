@@ -13,6 +13,7 @@ import {
 import AuroraBackground from '../components/AuroraBackground.vue'
 import MasonryGrid from '../components/MasonryGrid.vue'
 import PromptCard from '../components/PromptCard.vue'
+import ThemeToggle from '../components/ThemeToggle.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -98,25 +99,26 @@ async function logout() {
 <template>
   <div class="min-h-screen">
     <AuroraBackground />
-    <header class="sticky top-0 z-20 border-b border-white/10 bg-night/80 backdrop-blur-xl">
+    <header class="sticky top-0 z-20 border-b border-white/10 bg-night/80 light:border-slate-200 light:bg-white/75 backdrop-blur-xl">
       <div class="max-w-6xl mx-auto px-4 h-14 flex items-center gap-4">
         <router-link to="/feed" class="text-lg font-extrabold tracking-tight">
           Prompt<span class="text-accent">Gram</span>
         </router-link>
         <span class="flex-1"></span>
+        <ThemeToggle />
         <router-link
           to="/write"
           class="btn-grad rounded-lg px-3.5 py-1.5 text-sm font-semibold text-white"
         >
           + 글쓰기
         </router-link>
-        <button class="text-sm text-gray-500 hover:text-white" @click="logout">로그아웃</button>
+        <button class="text-sm text-gray-500 hover:text-white light:hover:text-slate-900" @click="logout">로그아웃</button>
       </div>
     </header>
 
     <main class="relative z-10 max-w-6xl mx-auto px-4 py-8">
       <!-- 프로필 -->
-      <section class="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm p-6 shadow-[0_12px_50px_rgba(40,60,180,0.1)]">
+      <section class="rounded-2xl border border-white/10 bg-white/[0.04] light:border-slate-200 light:bg-white backdrop-blur-sm p-6 shadow-[0_12px_50px_rgba(40,60,180,0.1)]">
         <div v-if="!editingProfile" class="flex items-center gap-4">
           <img
             v-if="auth.user?.profile_image_url"
@@ -137,7 +139,7 @@ async function logout() {
             </p>
           </div>
           <button
-            class="rounded-lg border border-white/20 hover:border-accent hover:text-accent transition-colors px-3.5 py-1.5 text-sm"
+            class="rounded-lg border border-white/20 light:border-slate-300 hover:border-accent hover:text-accent transition-colors px-3.5 py-1.5 text-sm"
             @click="startEditProfile"
           >
             프로필 수정
@@ -152,27 +154,27 @@ async function logout() {
               minlength="2"
               maxlength="50"
               placeholder="닉네임"
-              class="rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
+              class="rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
             />
             <input
               v-model="profileImageUrl"
               type="url"
               maxlength="500"
               placeholder="프로필 이미지 URL (선택)"
-              class="rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
+              class="rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
             />
           </div>
           <input
             v-model="bio"
             maxlength="200"
             placeholder="한 줄 소개 (선택)"
-            class="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
+            class="w-full rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
           />
           <p v-if="profileError" class="text-sm text-red-400">{{ profileError }}</p>
           <div class="flex gap-2 justify-end">
             <button
               type="button"
-              class="rounded-lg px-4 py-2 text-sm text-gray-400 hover:text-white"
+              class="rounded-lg px-4 py-2 text-sm text-gray-400 hover:text-white light:text-slate-500 light:hover:text-slate-900"
               @click="editingProfile = false"
             >
               취소
@@ -188,17 +190,17 @@ async function logout() {
       </section>
 
       <!-- 탭 -->
-      <div class="mt-8 flex gap-1 border-b border-white/10 text-sm font-medium">
+      <div class="mt-8 flex gap-1 border-b border-white/10 light:border-slate-200 text-sm font-medium">
         <button
           class="px-4 py-2.5 -mb-px border-b-2 transition-colors"
-          :class="tab === 'mine' ? 'border-accent text-white' : 'border-transparent text-gray-500 hover:text-gray-300'"
+          :class="tab === 'mine' ? 'border-accent text-white light:text-slate-900' : 'border-transparent text-gray-500 hover:text-gray-300 light:hover:text-slate-700'"
           @click="tab = 'mine'"
         >
           내 프롬프트 ({{ mine.length }})
         </button>
         <button
           class="px-4 py-2.5 -mb-px border-b-2 transition-colors"
-          :class="tab === 'saved' ? 'border-accent text-white' : 'border-transparent text-gray-500 hover:text-gray-300'"
+          :class="tab === 'saved' ? 'border-accent text-white light:text-slate-900' : 'border-transparent text-gray-500 hover:text-gray-300 light:hover:text-slate-700'"
           @click="tab = 'saved'"
         >
           스크랩 ({{ saved.length }})

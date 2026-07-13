@@ -305,12 +305,12 @@ function start() {
     <!-- ── 상단 고정 nav (스크롤 시 glass bar) ── -->
     <header
       class="fixed top-0 inset-x-0 z-40 flex items-center justify-between px-6 sm:px-10 h-16 transition-all duration-300"
-      :class="scrolled ? 'bg-night/70 backdrop-blur-md border-b border-white/10' : 'border-b border-transparent'"
+      :class="scrolled ? 'bg-night/70 light:bg-white/70 backdrop-blur-md border-b border-white/10 light:border-slate-200' : 'border-b border-transparent'"
     >
       <span class="text-base font-extrabold tracking-tight">Prompt<span class="text-accent">Gram</span></span>
       <router-link
         to="/auth"
-        class="rounded-full border border-white/15 px-4 py-1.5 text-xs text-gray-300 hover:border-accent hover:text-white transition-colors"
+        class="rounded-full border border-white/15 text-gray-300 light:border-slate-300 light:text-slate-600 px-4 py-1.5 text-xs hover:border-accent hover:text-accent transition-colors"
       >
         로그인
       </router-link>
@@ -344,7 +344,7 @@ function start() {
           <span class="gcard-badge">{{ c.source }}</span>
         </div>
       </div>
-      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_30%,#0A0A0A_92%)]"></div>
+      <div class="hero-vignette absolute inset-0 pointer-events-none"></div>
 
       <div class="relative z-10">
         <p class="text-sm font-semibold tracking-[0.2em] text-gray-500 uppercase">PromptGram</p>
@@ -352,7 +352,7 @@ function start() {
           당신의 <span class="var-chip">[완벽한 질문]</span>,<br />
           허공에 날리지 마세요.
         </h1>
-        <p class="mt-6 text-base sm:text-lg text-gray-400 max-w-xl mx-auto">
+        <p class="mt-6 text-base sm:text-lg text-gray-400 light:text-slate-500 max-w-xl mx-auto">
           전 세계의 검증된 프롬프트를 아카이빙하고,<br class="sm:hidden" />
           AI 100% 활용법을 발견하세요.
         </p>
@@ -820,5 +820,62 @@ function start() {
   .type-caret {
     animation: none;
   }
+}
+
+/* ══ 라이트 모드 오버라이드 ══ */
+:global(.light) .landing {
+  background: #f5f7fb;
+}
+.hero-vignette {
+  background: radial-gradient(ellipse at center, transparent 30%, #0a0a0a 92%);
+}
+:global(.light) .hero-vignette {
+  background: radial-gradient(ellipse at center, transparent 30%, #f5f7fb 92%);
+}
+:global(.light) .aurora-a,
+:global(.light) .aurora-b,
+:global(.light) .aurora-c {
+  opacity: 0.5;
+}
+:global(.light) .gcard {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.75);
+}
+:global(.light) .gcard-title {
+  color: #334155;
+}
+:global(.light) .gcard-text {
+  color: #64748b;
+}
+:global(.light) .gcard-badge {
+  color: #475569;
+  background: rgba(15, 23, 42, 0.06);
+}
+:global(.light) .var-chip {
+  text-shadow: 0 0 26px rgba(0, 112, 243, 0.3);
+}
+:global(.light) .body-copy {
+  color: #475569;
+}
+:global(.light) .demo-card {
+  border-color: rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 20px 50px rgba(30, 50, 120, 0.12);
+}
+:global(.light) .demo-card--ai {
+  border-color: rgba(124, 58, 237, 0.35);
+  box-shadow: 0 0 30px rgba(124, 58, 237, 0.12), 0 20px 50px rgba(30, 50, 120, 0.12);
+}
+:global(.light) .demo-card .text-gray-200,
+:global(.light) .demo-card .text-gray-300 {
+  color: #334155;
+}
+:global(.light) .reason-chip {
+  color: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.4);
+}
+:global(.light) .mini-card {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.8);
 }
 </style>

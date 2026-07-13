@@ -6,6 +6,10 @@ html {
   @apply bg-night text-gray-100 antialiased;
 }
 
+html.light {
+  @apply bg-day text-slate-800;
+}
+
 body {
   @apply font-sans min-h-screen;
 }

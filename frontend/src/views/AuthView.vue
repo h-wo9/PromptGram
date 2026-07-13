@@ -46,16 +46,16 @@ async function submit() {
       <div class="auth-blob auth-blob--blue"></div>
       <div class="auth-blob auth-blob--violet"></div>
       <div class="auth-grid"></div>
-      <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,#0A0A0A_95%)]"></div>
+      <div class="auth-vignette absolute inset-0"></div>
     </div>
 
     <div
-      class="relative w-full max-w-md rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-8 shadow-2xl shadow-[0_20px_80px_rgba(40,60,180,0.18)]"
+      class="relative w-full max-w-md rounded-2xl border border-white/10 bg-white/5 light:border-slate-200 light:bg-white/80 backdrop-blur-xl p-8 shadow-2xl shadow-[0_20px_80px_rgba(40,60,180,0.18)]"
     >
       <router-link to="/" class="block text-center text-2xl font-extrabold tracking-tight">
         Prompt<span class="text-accent">Gram</span>
       </router-link>
-      <div class="relative mt-6 grid grid-cols-2 rounded-lg bg-white/5 p-1 text-sm font-medium">
+      <div class="relative mt-6 grid grid-cols-2 rounded-lg bg-white/5 light:bg-slate-900/[0.06] p-1 text-sm font-medium">
         <div
           class="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-md bg-accent transition-transform duration-300 ease-out"
           :class="mode === 'signup' ? 'translate-x-full' : ''"
@@ -63,14 +63,14 @@ async function submit() {
         ></div>
         <button
           class="relative z-10 py-1.5 transition-colors duration-300"
-          :class="mode === 'login' ? 'text-white' : 'text-gray-400'"
+          :class="mode === 'login' ? 'text-white' : 'text-gray-400 light:text-slate-500'"
           @click="mode = 'login'"
         >
           로그인
         </button>
         <button
           class="relative z-10 py-1.5 transition-colors duration-300"
-          :class="mode === 'signup' ? 'text-white' : 'text-gray-400'"
+          :class="mode === 'signup' ? 'text-white' : 'text-gray-400 light:text-slate-500'"
           @click="mode = 'signup'"
         >
           회원가입
@@ -83,7 +83,7 @@ async function submit() {
           type="email"
           required
           placeholder="이메일"
-          class="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-sm focus:border-accent focus:outline-none"
+          class="w-full rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-4 py-3 text-sm focus:border-accent focus:outline-none"
         />
         <transition name="collapse">
           <div v-if="mode === 'signup'" class="collapse-field">
@@ -94,7 +94,7 @@ async function submit() {
               minlength="2"
               maxlength="50"
               placeholder="닉네임 (2자 이상)"
-              class="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-sm focus:border-accent focus:outline-none"
+              class="w-full rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-4 py-3 text-sm focus:border-accent focus:outline-none"
             />
           </div>
         </transition>
@@ -104,7 +104,7 @@ async function submit() {
           required
           :minlength="mode === 'signup' ? 8 : undefined"
           placeholder="비밀번호 (8자 이상)"
-          class="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-sm focus:border-accent focus:outline-none"
+          class="w-full rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-4 py-3 text-sm focus:border-accent focus:outline-none"
         />
         <p v-if="error" class="text-sm text-red-400">{{ error }}</p>
         <button
@@ -120,6 +120,18 @@ async function submit() {
 </template>
 
 <style scoped>
+.auth-vignette {
+  background: radial-gradient(ellipse at center, transparent 35%, #0a0a0a 95%);
+}
+:global(.light) .auth-vignette {
+  background: radial-gradient(ellipse at center, transparent 35%, #f5f7fb 95%);
+}
+:global(.light) .auth-grid {
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+}
+
 /* ── 배경 대기 조명: 천천히 떠다니는 blue/violet blob (transform만) ── */
 .auth-blob {
   position: absolute;

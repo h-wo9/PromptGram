@@ -11,6 +11,7 @@ import {
 import AuroraBackground from '../components/AuroraBackground.vue'
 import MasonryGrid from '../components/MasonryGrid.vue'
 import PromptCard from '../components/PromptCard.vue'
+import ThemeToggle from '../components/ThemeToggle.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -124,14 +125,14 @@ async function logout() {
   <div class="min-h-screen">
     <AuroraBackground />
     <header
-      class="sticky top-0 z-20 border-b border-white/10 bg-night/80 backdrop-blur-xl"
+      class="sticky top-0 z-20 border-b border-white/10 bg-night/80 light:border-slate-200 light:bg-white/75 backdrop-blur-xl"
     >
       <div class="max-w-6xl mx-auto px-4 h-14 flex items-center gap-4">
         <router-link to="/feed" class="text-lg font-extrabold tracking-tight">
           Prompt<span class="text-accent">Gram</span>
         </router-link>
 
-        <div class="relative grid grid-cols-2 rounded-lg bg-white/5 p-0.5 text-xs font-medium">
+        <div class="relative grid grid-cols-2 rounded-lg bg-white/5 light:bg-slate-900/[0.06] p-0.5 text-xs font-medium">
           <div
             class="absolute inset-y-0.5 left-0.5 w-[calc(50%-0.125rem)] rounded-md bg-gradient-to-r from-accent to-violet-600 transition-transform duration-300 ease-out"
             :class="sort === 'popular' ? 'translate-x-full' : ''"
@@ -139,14 +140,14 @@ async function logout() {
           ></div>
           <button
             class="relative z-10 px-3 py-1 transition-colors duration-300"
-            :class="sort === 'latest' ? 'text-white' : 'text-gray-400'"
+            :class="sort === 'latest' ? 'text-white' : 'text-gray-400 light:text-slate-500'"
             @click="sort = 'latest'"
           >
             최신
           </button>
           <button
             class="relative z-10 px-3 py-1 transition-colors duration-300"
-            :class="sort === 'popular' ? 'text-white' : 'text-gray-400'"
+            :class="sort === 'popular' ? 'text-white' : 'text-gray-400 light:text-slate-500'"
             @click="sort = 'popular'"
           >
             인기
@@ -165,12 +166,13 @@ async function logout() {
           <input
             v-model="searchInput"
             placeholder="#태그 검색"
-            class="w-36 rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs focus:border-accent focus:outline-none focus:w-48 transition-all"
+            class="w-36 rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-200 px-3 py-1.5 text-xs focus:border-accent focus:outline-none focus:w-48 transition-all"
           />
         </form>
 
         <span class="flex-1"></span>
 
+        <ThemeToggle />
         <template v-if="auth.isLoggedIn">
           <router-link
             to="/write"
@@ -178,10 +180,16 @@ async function logout() {
           >
             + 글쓰기
           </router-link>
-          <router-link to="/me" class="text-sm text-gray-300 hover:text-white">
+          <router-link
+            to="/me"
+            class="text-sm text-gray-300 hover:text-white light:text-slate-600 light:hover:text-slate-900"
+          >
             마이페이지
           </router-link>
-          <button class="text-sm text-gray-500 hover:text-white" @click="logout">
+          <button
+            class="text-sm text-gray-500 hover:text-white light:hover:text-slate-900"
+            @click="logout"
+          >
             로그아웃
           </button>
         </template>
@@ -210,7 +218,7 @@ async function logout() {
 
       <div ref="sentinel" class="h-8"></div>
       <p v-if="loading" class="text-center text-sm text-gray-500 py-4">불러오는 중…</p>
-      <p v-else-if="done && items.length" class="text-center text-sm text-gray-600 py-4">
+      <p v-else-if="done && items.length" class="text-center text-sm text-gray-600 light:text-slate-400 py-4">
         마지막 프롬프트까지 다 봤어요
       </p>
       <p v-else-if="done && !items.length" class="text-center text-sm text-gray-500 py-16">

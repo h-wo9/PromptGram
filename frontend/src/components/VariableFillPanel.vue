@@ -31,10 +31,10 @@ async function copy() {
           v-model="values[v]"
           type="text"
           :placeholder="`${v} 입력`"
-          class="mt-1 w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+          class="mt-1 w-full rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
         />
       </label>
-      <p class="text-xs text-gray-400 whitespace-pre-wrap break-words rounded-lg bg-white/5 p-3 max-h-40 overflow-y-auto">
+      <p class="text-xs text-gray-400 light:text-slate-500 whitespace-pre-wrap break-words rounded-lg bg-white/5 light:bg-slate-900/[0.04] p-3 max-h-40 overflow-y-auto">
         {{ preview }}
       </p>
     </div>
