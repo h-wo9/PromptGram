@@ -2,6 +2,7 @@
 // 차단되므로 localStorage + 짧은 access + refresh rotation 채택.
 // 커스텀 도메인으로 same-site가 되면 httpOnly cookie 방식으로 전환 가능.
 import axios from 'axios'
+import { showToast } from '../composables/toast'
 
 const REFRESH_KEY = 'pg_refresh_token'
 
@@ -62,7 +63,8 @@ api.interceptors.response.use(
         return api(original)
       } catch {
         clearTokens()
-        if (window.location.pathname !== '/') window.location.assign('/')
+        showToast('세션이 만료됐어요. 다시 로그인해주세요.', 'error', 3000)
+        if (window.location.pathname !== '/') setTimeout(() => window.location.assign('/'), 800)
       }
     }
     return Promise.reject(error)

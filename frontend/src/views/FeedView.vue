@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onActivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import {
@@ -8,16 +8,23 @@ import {
   toggleBookmark,
   toggleLike,
 } from '../api/prompts'
+import { feedStale } from '../composables/feedSignal'
+import { showToast } from '../composables/toast'
 import AuroraBackground from '../components/AuroraBackground.vue'
 import MasonryGrid from '../components/MasonryGrid.vue'
 import PromptCard from '../components/PromptCard.vue'
+import SkeletonCard from '../components/SkeletonCard.vue'
 import ThemeToggle from '../components/ThemeToggle.vue'
+
+// KeepAlive 대상 이름 (뒤로가기 시 목록·스크롤 유지)
+defineOptions({ name: 'FeedView' })
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
 const searchInput = ref('')
+const mobileSearch = ref(false)
 const items = ref([])
 const nextCursor = ref(null)
 const sort = ref('latest')
@@ -80,6 +87,14 @@ onMounted(() => {
 })
 onUnmounted(() => observer?.disconnect())
 
+// keep-alive 복귀: 게시/수정/삭제가 있었을 때만 새로고침 (뒤로가기는 캐시+스크롤 유지)
+onActivated(() => {
+  if (feedStale.value) {
+    feedStale.value = false
+    loadMore(true)
+  }
+})
+
 function requireAuth() {
   if (!auth.isLoggedIn) {
     router.push({ name: 'auth' })
@@ -88,16 +103,31 @@ function requireAuth() {
   return true
 }
 
+// 낙관적 업데이트: 즉시 반영 → 성공 시 서버값 동기화, 실패 시 롤백
 async function onLike(prompt) {
   if (!requireAuth()) return
-  const data = await toggleLike(prompt.id)
-  Object.assign(prompt, data)
+  const rollback = { is_liked: prompt.is_liked, like_count: prompt.like_count }
+  prompt.is_liked = !prompt.is_liked
+  prompt.like_count += prompt.is_liked ? 1 : -1
+  try {
+    Object.assign(prompt, await toggleLike(prompt.id))
+  } catch {
+    Object.assign(prompt, rollback)
+    showToast('좋아요 처리에 실패했어요', 'error')
+  }
 }
 
 async function onBookmark(prompt) {
   if (!requireAuth()) return
-  const data = await toggleBookmark(prompt.id)
-  Object.assign(prompt, data)
+  const rollback = { is_bookmarked: prompt.is_bookmarked, bookmark_count: prompt.bookmark_count }
+  prompt.is_bookmarked = !prompt.is_bookmarked
+  prompt.bookmark_count += prompt.is_bookmarked ? 1 : -1
+  try {
+    Object.assign(prompt, await toggleBookmark(prompt.id))
+  } catch {
+    Object.assign(prompt, rollback)
+    showToast('스크랩 처리에 실패했어요', 'error')
+  }
 }
 
 async function onCopied(prompt) {
@@ -172,6 +202,17 @@ async function logout() {
 
         <span class="flex-1"></span>
 
+        <!-- 모바일: 검색 토글 버튼 -->
+        <button
+          class="sm:hidden w-8 h-8 rounded-full border border-white/15 text-gray-300 light:border-slate-300 light:text-slate-600 hover:border-accent hover:text-accent transition-colors flex items-center justify-center"
+          aria-label="태그 검색 열기"
+          @click="mobileSearch = !mobileSearch"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+        </button>
+
         <ThemeToggle />
         <template v-if="auth.isLoggedIn">
           <router-link
@@ -201,10 +242,26 @@ async function logout() {
           시작하기
         </router-link>
       </div>
+
+      <!-- 모바일 검색 row -->
+      <div v-if="mobileSearch" class="sm:hidden px-4 pb-3">
+        <form @submit.prevent="searchTag(); mobileSearch = false">
+          <input
+            v-model="searchInput"
+            placeholder="#태그 검색"
+            class="w-full rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-200 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+          />
+        </form>
+      </div>
     </header>
 
     <main class="relative z-10 max-w-6xl mx-auto px-4 py-6">
-      <transition name="feed-swap" mode="out-in">
+      <!-- 초기 로딩: shimmer skeleton -->
+      <MasonryGrid v-if="loading && !items.length" :items="[1, 2, 3, 4, 5, 6].map((id) => ({ id }))" v-slot="{ item }">
+        <SkeletonCard :lines="(item.id % 3) + 2" />
+      </MasonryGrid>
+
+      <transition v-else name="feed-swap" mode="out-in">
         <MasonryGrid :key="feedVersion" :items="items" v-slot="{ item }">
           <PromptCard
             :prompt="item"
@@ -217,7 +274,7 @@ async function logout() {
       </transition>
 
       <div ref="sentinel" class="h-8"></div>
-      <p v-if="loading" class="text-center text-sm text-gray-500 py-4">불러오는 중…</p>
+      <p v-if="loading && items.length" class="text-center text-sm text-gray-500 py-4">불러오는 중…</p>
       <p v-else-if="done && items.length" class="text-center text-sm text-gray-600 light:text-slate-400 py-4">
         마지막 프롬프트까지 다 봤어요
       </p>

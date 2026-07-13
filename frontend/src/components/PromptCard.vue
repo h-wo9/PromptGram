@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue'
+import { showToast } from '../composables/toast'
 import ShareCard from './ShareCard.vue'
 import VariableFillPanel from './VariableFillPanel.vue'
 
@@ -30,7 +31,29 @@ const segments = computed(() => {
 function onCopied() {
   justCopied.value = true
   setTimeout(() => (justCopied.value = false), 1500)
+  showToast('클립보드에 복사됐어요')
   emit('copied', props.prompt)
+}
+
+// 변수 없는 프롬프트는 버튼 한 번에 즉시 복사 (원클릭), 변수 있으면 채우기 패널
+async function onCopyClick() {
+  if (props.prompt.variables.length === 0) {
+    await navigator.clipboard.writeText(props.prompt.prompt_text)
+    onCopied()
+    return
+  }
+  showCopy.value = !showCopy.value
+}
+
+// 좋아요 하트 pop 마이크로 인터랙션
+const heartPop = ref(false)
+
+function onLikeClick() {
+  if (!props.prompt.is_liked) {
+    heartPop.value = true
+    setTimeout(() => (heartPop.value = false), 400)
+  }
+  emit('like', props.prompt)
 }
 
 // 카드 이미지 다운로드: 공유용 ShareCard를 화면 밖에 렌더해 html2canvas로 캡처
@@ -117,9 +140,9 @@ async function downloadImage() {
         class="flex items-center gap-1 transition-colors"
         :class="prompt.is_liked ? 'text-red-400' : 'hover:text-red-400'"
         :aria-label="prompt.is_liked ? '좋아요 취소' : '좋아요'"
-        @click="emit('like', prompt)"
+        @click="onLikeClick"
       >
-        <svg class="w-4 h-4" viewBox="0 0 24 24" :fill="prompt.is_liked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+        <svg class="w-4 h-4" :class="{ 'heart-pop': heartPop }" viewBox="0 0 24 24" :fill="prompt.is_liked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
         </svg>
         {{ prompt.like_count }}
@@ -159,7 +182,7 @@ async function downloadImage() {
       </template>
       <button
         class="rounded-lg border border-accent/50 text-accent hover:bg-accent hover:text-white transition-colors px-3 py-1 text-xs font-semibold"
-        @click="showCopy = !showCopy"
+        @click="onCopyClick"
       >
         {{ justCopied ? '복사됨 ✓' : '복사' }}
       </button>
@@ -181,3 +204,19 @@ async function downloadImage() {
     </div>
   </article>
 </template>
+
+<style scoped>
+.heart-pop {
+  animation: heart-pop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes heart-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .heart-pop {
+    animation: none;
+  }
+}
+</style>

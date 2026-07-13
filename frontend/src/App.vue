@@ -1,4 +1,7 @@
 <script setup>
+import ConfirmDialog from './components/ConfirmDialog.vue'
+import ToastHost from './components/ToastHost.vue'
+
 // zoom 전환 중 scale된 페이지가 viewport를 넘치며 scrollbar가 깜빡이는 것 방지
 function lockScroll() {
   document.documentElement.style.overflow = 'hidden'
@@ -18,9 +21,14 @@ function unlockScroll() {
       @enter-cancelled="unlockScroll"
       @leave-cancelled="unlockScroll"
     >
-      <component :is="Component" />
+      <!-- FeedView는 keep-alive: 뒤로가기 시 목록·스크롤 위치 유지 -->
+      <KeepAlive include="FeedView">
+        <component :is="Component" />
+      </KeepAlive>
     </transition>
   </router-view>
+  <ToastHost />
+  <ConfirmDialog />
 </template>
 
 <style>

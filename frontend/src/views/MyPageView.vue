@@ -10,7 +10,11 @@ import {
   toggleBookmark,
   toggleLike,
 } from '../api/prompts'
+import { confirmDialog } from '../composables/confirm'
+import { feedStale } from '../composables/feedSignal'
+import { showToast } from '../composables/toast'
 import AuroraBackground from '../components/AuroraBackground.vue'
+import SkeletonCard from '../components/SkeletonCard.vue'
 import MasonryGrid from '../components/MasonryGrid.vue'
 import PromptCard from '../components/PromptCard.vue'
 import ThemeToggle from '../components/ThemeToggle.vue'
@@ -59,6 +63,7 @@ async function saveProfile() {
       profile_image_url: profileImageUrl.value || null,
     })
     editingProfile.value = false
+    showToast('프로필이 저장됐어요')
   } catch (e) {
     const detail = e.response?.data?.detail
     profileError.value =
@@ -66,14 +71,31 @@ async function saveProfile() {
   }
 }
 
+// 낙관적 업데이트: 즉시 반영 → 실패 시 롤백
 async function onLike(prompt) {
-  Object.assign(prompt, await toggleLike(prompt.id))
+  const rollback = { is_liked: prompt.is_liked, like_count: prompt.like_count }
+  prompt.is_liked = !prompt.is_liked
+  prompt.like_count += prompt.is_liked ? 1 : -1
+  try {
+    Object.assign(prompt, await toggleLike(prompt.id))
+  } catch {
+    Object.assign(prompt, rollback)
+    showToast('좋아요 처리에 실패했어요', 'error')
+  }
 }
 
 async function onBookmark(prompt) {
-  const data = await toggleBookmark(prompt.id)
-  Object.assign(prompt, data)
-  if (!data.is_bookmarked) saved.value = saved.value.filter((p) => p.id !== prompt.id)
+  const rollback = { is_bookmarked: prompt.is_bookmarked, bookmark_count: prompt.bookmark_count }
+  prompt.is_bookmarked = !prompt.is_bookmarked
+  prompt.bookmark_count += prompt.is_bookmarked ? 1 : -1
+  try {
+    const data = await toggleBookmark(prompt.id)
+    Object.assign(prompt, data)
+    if (!data.is_bookmarked) saved.value = saved.value.filter((p) => p.id !== prompt.id)
+  } catch {
+    Object.assign(prompt, rollback)
+    showToast('스크랩 처리에 실패했어요', 'error')
+  }
 }
 
 async function onCopied(prompt) {
@@ -85,9 +107,17 @@ async function onCopied(prompt) {
 }
 
 async function onRemove(prompt) {
-  if (!confirm(`'${prompt.title}' 프롬프트를 삭제할까요?`)) return
+  const ok = await confirmDialog({
+    title: '프롬프트를 삭제할까요?',
+    body: `'${prompt.title}'은(는) 삭제 후 되돌릴 수 없어요.`,
+    confirmText: '삭제',
+    danger: true,
+  })
+  if (!ok) return
   await deletePrompt(prompt.id)
   mine.value = mine.value.filter((p) => p.id !== prompt.id)
+  feedStale.value = true
+  showToast('삭제됐어요')
 }
 
 async function logout() {
@@ -208,7 +238,9 @@ async function logout() {
       </div>
 
       <div class="mt-6">
-        <p v-if="loading" class="text-center text-sm text-gray-500 py-12">불러오는 중…</p>
+        <MasonryGrid v-if="loading" :items="[1, 2, 3].map((id) => ({ id }))" v-slot="{ item }">
+          <SkeletonCard :lines="(item.id % 3) + 2" />
+        </MasonryGrid>
         <template v-else>
           <MasonryGrid v-if="tab === 'mine'" :items="mine" v-slot="{ item }">
             <PromptCard

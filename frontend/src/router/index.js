@@ -1,8 +1,23 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
+const TITLES = {
+  landing: null,
+  auth: '시작하기',
+  feed: '피드',
+  write: '새 프롬프트',
+  edit: '프롬프트 수정',
+  mypage: '마이페이지',
+}
+
 const router = createRouter({
   history: createWebHistory(),
+  // 뒤로가기는 이전 스크롤 위치 복원 (zoom 전환이 끝난 뒤), 그 외엔 맨 위로
+  scrollBehavior(to, from, savedPosition) {
+    return new Promise((resolve) => {
+      setTimeout(() => resolve(savedPosition ?? { top: 0 }), savedPosition ? 480 : 0)
+    })
+  },
   routes: [
     {
       path: '/',
@@ -47,6 +62,11 @@ router.beforeEach(async (to) => {
   await auth.ensureSession()
   if (to.meta.requiresAuth && !auth.isLoggedIn) return { name: 'auth' }
   if (to.meta.guestOnly && auth.isLoggedIn) return { name: 'feed' }
+})
+
+router.afterEach((to) => {
+  const title = TITLES[to.name]
+  document.title = title ? `${title} · PromptGram` : 'PromptGram'
 })
 
 export default router

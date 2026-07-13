@@ -1,7 +1,10 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { suggestTags, tunePrompt } from '../api/ai'
+import { confirmDialog } from '../composables/confirm'
+import { feedStale } from '../composables/feedSignal'
+import { showToast } from '../composables/toast'
 import { createPrompt, getPrompt, updatePrompt } from '../api/prompts'
 import { parseVariables } from '../utils/variables'
 
@@ -91,7 +94,37 @@ onMounted(async () => {
   aiSource.value = p.ai_source ?? ''
   tagInput.value = p.tags.map((t) => `#${t}`).join(' ')
   isPublic.value = p.is_public
+  initialSnapshot = snapshot()
 })
+
+// 작성 중 이탈 경고
+let submitted = false
+function snapshot() {
+  return JSON.stringify([title.value, promptText.value, aiResponse.value, aiSource.value, tagInput.value, isPublic.value])
+}
+let initialSnapshot = snapshot()
+const isDirty = () => !submitted && snapshot() !== initialSnapshot
+
+onBeforeRouteLeave(async () => {
+  if (!isDirty()) return true
+  return confirmDialog({
+    title: '작성을 그만둘까요?',
+    body: '작성 중인 내용은 저장되지 않아요.',
+    confirmText: '나가기',
+    danger: true,
+  })
+})
+
+function onBeforeUnload(e) {
+  if (isDirty()) e.preventDefault()
+}
+window.addEventListener('beforeunload', onBeforeUnload)
+onUnmounted(() => window.removeEventListener('beforeunload', onBeforeUnload))
+
+// Cmd/Ctrl + Enter로 제출
+function onFormKeydown(e) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submit()
+}
 
 async function submit() {
   error.value = ''
@@ -107,6 +140,9 @@ async function submit() {
     }
     if (editId) await updatePrompt(editId, payload)
     else await createPrompt(payload)
+    submitted = true
+    feedStale.value = true
+    showToast(editId ? '수정됐어요' : '게시됐어요')
     router.push({ name: 'feed' })
   } catch (e) {
     const detail = e.response?.data?.detail
@@ -124,7 +160,7 @@ async function submit() {
       <router-link to="/feed" class="text-sm text-gray-400 hover:text-white light:text-slate-500 light:hover:text-slate-900">← 피드로</router-link>
     </div>
 
-    <form class="mt-6 space-y-4" @submit.prevent="submit">
+    <form class="mt-6 space-y-4" @submit.prevent="submit" @keydown="onFormKeydown">
       <input
         v-model="title"
         required
@@ -141,6 +177,12 @@ async function submit() {
           placeholder="프롬프트 본문 — [변수명] 문법으로 재사용 변수를 지정할 수 있어요"
           class="w-full rounded-lg bg-white/5 border border-white/10 light:bg-white light:border-slate-300 px-4 py-3 text-sm focus:border-accent focus:outline-none"
         ></textarea>
+        <p
+          class="mt-1 text-right text-[11px]"
+          :class="promptText.length > 4500 ? 'text-amber-400' : 'text-gray-500 light:text-slate-400'"
+        >
+          {{ promptText.length.toLocaleString() }} / 5,000
+        </p>
         <div v-if="variables.length" class="mt-2 flex flex-wrap gap-2">
           <span class="text-xs text-gray-400 light:text-slate-500 self-center">감지된 변수:</span>
           <span
