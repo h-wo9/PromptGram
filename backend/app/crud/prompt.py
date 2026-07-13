@@ -167,13 +167,17 @@ async def increase_copy_count(db: AsyncSession, prompt: Prompt, user_id: int | N
     await db.commit()
 
 
-async def get_user_prompts(db: AsyncSession, user_id: int) -> list[Prompt]:
+async def get_user_prompts(
+    db: AsyncSession, user_id: int, *, public_only: bool = False
+) -> list[Prompt]:
     query = (
         select(Prompt)
         .where(Prompt.user_id == user_id)
         .options(*PROMPT_LOAD_OPTIONS)
         .order_by(Prompt.created_at.desc(), Prompt.id.desc())
     )
+    if public_only:
+        query = query.where(Prompt.is_public.is_(True))
     return list((await db.scalars(query)).all())
 
 

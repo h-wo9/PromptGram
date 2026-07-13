@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import {
@@ -27,6 +27,9 @@ const tab = ref('mine')
 const detail = ref(null) // { prompt, el }
 const mine = ref([])
 const saved = ref([])
+// 내 프롬프트 탭 = 공개 글만, 나만 보기 탭 = 비공개 글만
+const publicMine = computed(() => mine.value.filter((p) => p.is_public))
+const privateMine = computed(() => mine.value.filter((p) => !p.is_public))
 const loading = ref(true)
 
 const editingProfile = ref(false)
@@ -228,7 +231,7 @@ async function logout() {
           :class="tab === 'mine' ? 'border-accent text-white light:text-slate-900' : 'border-transparent text-gray-500 hover:text-gray-300 light:hover:text-slate-700'"
           @click="tab = 'mine'"
         >
-          내 프롬프트 ({{ mine.length }})
+          내 프롬프트 ({{ publicMine.length }})
         </button>
         <button
           class="px-4 py-2.5 -mb-px border-b-2 transition-colors"
@@ -237,6 +240,13 @@ async function logout() {
         >
           스크랩 ({{ saved.length }})
         </button>
+        <button
+          class="px-4 py-2.5 -mb-px border-b-2 transition-colors"
+          :class="tab === 'private' ? 'border-accent text-white light:text-slate-900' : 'border-transparent text-gray-500 hover:text-gray-300 light:hover:text-slate-700'"
+          @click="tab = 'private'"
+        >
+          나만 보기 ({{ privateMine.length }})
+        </button>
       </div>
 
       <div class="mt-6">
@@ -244,7 +254,7 @@ async function logout() {
           <SkeletonCard :lines="(item.id % 3) + 2" />
         </MasonryGrid>
         <template v-else>
-          <MasonryGrid v-if="tab === 'mine'" :items="mine" v-slot="{ item }">
+          <MasonryGrid v-if="tab === 'mine'" :items="publicMine" v-slot="{ item }">
             <PromptCard
               :prompt="item"
               show-visibility
@@ -258,7 +268,7 @@ async function logout() {
               @open="detail = $event"
             />
           </MasonryGrid>
-          <p v-if="tab === 'mine' && !mine.length" class="text-center text-sm text-gray-500 py-12">
+          <p v-if="tab === 'mine' && !publicMine.length" class="text-center text-sm text-gray-500 py-12">
             아직 쓴 프롬프트가 없어요 —
             <router-link to="/write" class="text-accent">첫 프롬프트를 남겨보세요</router-link>
           </p>
@@ -275,6 +285,24 @@ async function logout() {
           </MasonryGrid>
           <p v-if="tab === 'saved' && !saved.length" class="text-center text-sm text-gray-500 py-12">
             스크랩한 프롬프트가 없어요
+          </p>
+
+          <MasonryGrid v-if="tab === 'private'" :items="privateMine" v-slot="{ item }">
+            <PromptCard
+              :prompt="item"
+              show-visibility
+              editable
+              @like="onLike"
+              @bookmark="onBookmark"
+              @copied="onCopied"
+              @tag="(t) => router.push({ name: 'feed', query: { tag: t } })"
+              @edit="(p) => router.push({ name: 'edit', params: { id: p.id } })"
+              @remove="onRemove"
+              @open="detail = $event"
+            />
+          </MasonryGrid>
+          <p v-if="tab === 'private' && !privateMine.length" class="text-center text-sm text-gray-500 py-12">
+            비공개 프롬프트가 없어요 — 작성 시 공개를 끄면 여기에만 보여요
           </p>
         </template>
       </div>

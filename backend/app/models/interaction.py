@@ -34,6 +34,20 @@ class Bookmark(Base):
     )
 
 
+class Follow(Base):
+    __tablename__ = "follows"
+
+    follower_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    following_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class CopyRecord(Base):
     """copy_count를 계정당 1회만 올리기 위한 기록 (복사 자체는 무제한)."""
 

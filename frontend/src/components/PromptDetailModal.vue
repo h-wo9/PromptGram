@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import gsap from 'gsap'
 import { createComment, deleteComment, fetchComments, updateComment } from '../api/comments'
 import { confirmDialog } from '../composables/confirm'
@@ -144,6 +145,17 @@ function close() {
 function onKey(e) {
   if (e.key === 'Escape') close()
 }
+
+// 게시자·댓글 작성자 클릭 → 프로필 페이지
+const route = useRoute()
+const router = useRouter()
+
+function goProfile(userId) {
+  emit('close')
+  if (!(route.name === 'profile' && Number(route.params.id) === userId)) {
+    router.push({ name: 'profile', params: { id: userId } })
+  }
+}
 </script>
 
 <template>
@@ -169,22 +181,28 @@ function onKey(e) {
       </button>
 
       <header class="flex items-center gap-3 pr-10">
-        <img
-          v-if="prompt.author.profile_image_url"
-          :src="prompt.author.profile_image_url"
-          alt=""
-          class="w-10 h-10 rounded-full object-cover"
-        />
-        <div
-          v-else
-          class="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center text-sm font-bold text-white"
+        <button
+          class="flex items-center gap-3 min-w-0 text-left group"
+          :aria-label="`${prompt.author.nickname} 프로필 보기`"
+          @click="goProfile(prompt.author.id)"
         >
-          {{ prompt.author.nickname[0] }}
-        </div>
-        <div class="min-w-0">
-          <p class="text-sm font-semibold">{{ prompt.author.nickname }}</p>
-          <p class="text-xs text-gray-500 light:text-slate-400">{{ dateText }}</p>
-        </div>
+          <img
+            v-if="prompt.author.profile_image_url"
+            :src="prompt.author.profile_image_url"
+            alt=""
+            class="w-10 h-10 rounded-full object-cover"
+          />
+          <div
+            v-else
+            class="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center text-sm font-bold text-white"
+          >
+            {{ prompt.author.nickname[0] }}
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold group-hover:text-accent transition-colors">{{ prompt.author.nickname }}</p>
+            <p class="text-xs text-gray-500 light:text-slate-400">{{ dateText }}</p>
+          </div>
+        </button>
         <span class="flex-1"></span>
         <span
           v-if="prompt.ai_source"
@@ -287,14 +305,21 @@ function onKey(e) {
         <p v-if="commentsLoading" class="mt-4 text-sm text-gray-500 light:text-slate-400">댓글 불러오는 중…</p>
         <ul v-else-if="comments.length" class="mt-4 space-y-4">
           <li v-for="c in comments" :key="c.id" class="flex gap-2.5">
-            <div
+            <button
               class="w-7 h-7 shrink-0 rounded-full bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center text-[11px] font-bold text-white"
+              :aria-label="`${c.author.nickname} 프로필 보기`"
+              @click="goProfile(c.author.id)"
             >
               {{ c.author.nickname[0] }}
-            </div>
+            </button>
             <div class="min-w-0 flex-1">
               <p class="text-xs text-gray-400 light:text-slate-500">
-                <span class="font-semibold text-gray-200 light:text-slate-700">{{ c.author.nickname }}</span>
+                <button
+                  class="font-semibold text-gray-200 light:text-slate-700 hover:text-accent light:hover:text-accent transition-colors"
+                  @click="goProfile(c.author.id)"
+                >
+                  {{ c.author.nickname }}
+                </button>
                 · {{ timeAgo(c.created_at) }}
                 <span v-if="c.updated_at" class="text-gray-600 light:text-slate-400">(수정됨)</span>
               </p>

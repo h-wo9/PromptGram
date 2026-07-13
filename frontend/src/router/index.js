@@ -9,6 +9,7 @@ const TITLES = {
   write: '새 프롬프트',
   edit: '프롬프트 수정',
   mypage: '마이페이지',
+  profile: '프로필',
 }
 
 const router = createRouter({
@@ -54,6 +55,11 @@ const router = createRouter({
       name: 'mypage',
       component: () => import('../views/MyPageView.vue'),
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/users/:id',
+      name: 'profile',
+      component: () => import('../views/UserProfileView.vue'),
     },
   ],
 })
