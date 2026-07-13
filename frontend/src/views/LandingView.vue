@@ -422,7 +422,7 @@ function start() {
           <span class="hero-rise" style="--wi: 4">날리지</span>
           <span class="hero-rise" style="--wi: 5">마세요.</span>
         </h1>
-        <p class="hero-rise mt-6 text-base sm:text-lg text-gray-400 light:text-slate-500 max-w-xl mx-auto" style="--wi: 6">
+        <p class="hero-rise mt-6 text-base sm:text-lg text-gray-400 light:text-slate-500 max-w-xl mx-auto break-keep" style="--wi: 6">
           아카이빙하고, AI로 다듬고, 커뮤니티와 나누세요.<br class="sm:hidden" />
           검증된 프롬프트가 여기 모입니다.
         </p>
@@ -609,7 +609,7 @@ function start() {
       <div class="cta-orb" aria-hidden="true"></div>
       <div class="relative z-10" data-reveal>
         <h2 class="headline">지금, 첫 프롬프트를<br /><span class="grad-text">아카이브하세요.</span></h2>
-        <p class="mt-4 text-gray-400">30초면 충분해요. 이메일 하나로 시작합니다.</p>
+        <p class="mt-4 text-gray-400 break-keep">30초면 충분해요. 이메일 하나로 시작합니다.</p>
         <button class="cta group mt-9" @click="start">
           <span class="relative z-10">PromptGram 시작하기</span>
         </button>
@@ -874,6 +874,7 @@ div.hero-rise {
   line-height: 1.8;
   color: #9ca3af;
   max-width: 26rem;
+  word-break: keep-all; /* 한글 단어 중간에서 줄바꿈 방지 */
 }
 
 /* ── 데모 카드 (DOF: 뒤에 흐린 glow, 앞은 선명한 glass) ── */
