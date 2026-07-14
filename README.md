@@ -59,3 +59,31 @@ npm run dev
 ```bash
 cd backend && .venv/bin/pytest
 ```
+
+## 배포 (Vercel + Render + Supabase)
+
+### DB — Supabase
+- 프로젝트 생성 후 **Session pooler** 연결 문자열 사용 (포트 5432 — Transaction pooler 6543보다 호환성 좋음)
+- URL 끝에 `?sslmode=require` 유지. `postgres://`·`postgresql://` 스킴은 서버가 자동으로 asyncpg 스킴으로 변환함
+- 초기 스키마: 로컬에서 `DATABASE_URL=<supabase-url> .venv/bin/alembic upgrade head`
+- (선택) 데모 데이터: `DATABASE_URL=<supabase-url> .venv/bin/python -m app.seed`
+
+### Backend — Render (Web Service)
+- Root Directory: `backend`
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- Health Check Path: `/health`
+- 환경변수:
+  - `DATABASE_URL` — Supabase Session pooler URL (`?sslmode=require`)
+  - `JWT_SECRET_KEY` — `openssl rand -hex 32` 등으로 생성한 랜덤 값
+  - `CORS_ORIGINS` — Vercel 프론트 URL (예: `https://promptgram.vercel.app`)
+  - `GEMINI_API_KEY`, `GEMINI_MODEL=gemini-3-flash-preview`
+- Python 버전은 `backend/.python-version`(3.12)을 자동 인식
+
+### Frontend — Vercel
+- Root Directory: `frontend` (Vite 프리셋 자동 인식)
+- 환경변수: `VITE_API_BASE_URL` — Render backend URL (예: `https://promptgram-api.onrender.com`)
+- SPA 라우팅 rewrite는 `frontend/vercel.json`에 포함되어 있음
+- 배포 후 Render의 `CORS_ORIGINS`를 실제 Vercel 도메인으로 맞출 것
+
+> 참고: Render 무료 플랜은 유휴 시 슬립 → 첫 요청이 수십 초 걸릴 수 있음. Gemini 무료 티어는 입력·출력이 학습에 사용될 수 있으니 데모 안내 권장.

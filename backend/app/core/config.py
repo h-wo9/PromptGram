@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,6 +8,16 @@ class Settings(BaseSettings):
     DATABASE_URL: str = (
         "postgresql+asyncpg://promptgram:promptgram@localhost:55432/promptgram"
     )
+
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def normalize_db_scheme(cls, v: str) -> str:
+        """Supabase/Render 등이 주는 postgres:// URL을 asyncpg 드라이버 스킴으로 변환"""
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+asyncpg://", 1)
+        if v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
     JWT_SECRET_KEY: str = "dev-secret-do-not-use-in-prod"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
