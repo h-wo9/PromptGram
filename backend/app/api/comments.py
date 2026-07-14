@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, status
 from app.api.deps import CurrentUser, DbDep, OptionalUser
 from app.api.prompts import _get_visible
 from app.crud import comment as comment_crud
+from app.crud import notification as notification_crud
 from app.models import Comment, User
 from app.schemas.comment import CommentIn, CommentOut
 
@@ -21,10 +22,21 @@ async def list_comments(prompt_id: int, db: DbDep, user: OptionalUser):
     status_code=status.HTTP_201_CREATED,
 )
 async def create_comment(prompt_id: int, body: CommentIn, user: CurrentUser, db: DbDep):
-    await _get_visible(db, prompt_id, user)
-    return await comment_crud.create(
+    prompt = await _get_visible(db, prompt_id, user)
+    comment = await comment_crud.create(
         db, prompt_id=prompt_id, user_id=user.id, content=body.content
     )
+    # 알림: 내 글에 댓글이 달렸어요 (본인 댓글은 제외)
+    if prompt.user_id != user.id:
+        notification_crud.add(
+            db,
+            user_id=prompt.user_id,
+            actor_id=user.id,
+            type="comment",
+            prompt_id=prompt_id,
+        )
+        await db.commit()
+    return comment
 
 
 async def _get_owned(db, comment_id: int, user: User) -> Comment:

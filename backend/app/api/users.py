@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, status
 from app.api.deps import CurrentUser, DbDep, OptionalUser
 from app.api.prompts import to_prompt_out
 from app.crud import follow as follow_crud
+from app.crud import notification as notification_crud
 from app.crud import prompt as prompt_crud
 from app.crud import user as user_crud
 from app.schemas.prompt import AuthorOut, PromptOut
@@ -88,6 +89,10 @@ async def follow_user(user_id: int, user: CurrentUser, db: DbDep):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cannot follow yourself")
     await _get_user_or_404(db, user_id)
     is_following = await follow_crud.toggle(db, user.id, user_id)
+    if is_following:
+        # 알림: 누가 당신을 팔로우했어요
+        notification_crud.add(db, user_id=user_id, actor_id=user.id, type="follow")
+        await db.commit()
     followers, _ = await follow_crud.counts(db, user_id)
     return FollowToggleOut(is_following=is_following, follower_count=followers)
 

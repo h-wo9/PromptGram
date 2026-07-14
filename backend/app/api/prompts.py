@@ -3,6 +3,8 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import CurrentUser, DbDep, OptionalUser
+from app.crud import follow as follow_crud
+from app.crud import notification as notification_crud
 from app.crud import prompt as prompt_crud
 from app.models import Prompt, User
 from app.schemas.prompt import FeedOut, PromptCreate, PromptOut, PromptUpdate
@@ -60,6 +62,19 @@ async def create_prompt(body: PromptCreate, user: CurrentUser, db: DbDep):
         is_public=body.is_public,
         tag_names=body.tags,
     )
+    # 알림: 팔로워들에게 새 공개 프롬프트 소식 (비공개는 제외)
+    if prompt.is_public:
+        followers = await follow_crud.followers_of(db, user.id)
+        for follower in followers:
+            notification_crud.add(
+                db,
+                user_id=follower.id,
+                actor_id=user.id,
+                type="new_prompt",
+                prompt_id=prompt.id,
+            )
+        if followers:
+            await db.commit()
     return to_prompt_out(prompt)
 
 

@@ -1,5 +1,6 @@
 from app.models.comment import Comment
 from app.models.interaction import Bookmark, CopyRecord, Follow, Like
+from app.models.notification import Notification
 from app.models.prompt import Prompt, PromptTag, Tag
 from app.models.token import RefreshToken
 from app.models.user import User
@@ -13,6 +14,7 @@ __all__ = [
     "Bookmark",
     "CopyRecord",
     "Follow",
+    "Notification",
     "RefreshToken",
     "Comment",
 ]

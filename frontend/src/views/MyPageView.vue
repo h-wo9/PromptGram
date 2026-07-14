@@ -6,6 +6,7 @@ import {
   deletePrompt,
   fetchMyBookmarks,
   fetchMyPrompts,
+  getPrompt,
   increaseCopyCount,
   toggleBookmark,
   toggleLike,
@@ -18,6 +19,7 @@ import AuroraBackground from '../components/AuroraBackground.vue'
 import FollowListModal from '../components/FollowListModal.vue'
 import SkeletonCard from '../components/SkeletonCard.vue'
 import MasonryGrid from '../components/MasonryGrid.vue'
+import NotificationBell from '../components/NotificationBell.vue'
 import PromptCard from '../components/PromptCard.vue'
 import PromptDetailModal from '../components/PromptDetailModal.vue'
 import ThemeToggle from '../components/ThemeToggle.vue'
@@ -64,6 +66,16 @@ async function load() {
 function goProfile(id) {
   followList.value = null
   if (id !== auth.user.id) router.push({ name: 'profile', params: { id } })
+}
+
+// 알림 클릭: 해당 프롬프트를 상세 모달로 열기
+async function openPromptById(id) {
+  try {
+    const prompt = await getPrompt(id)
+    detail.value = { prompt, el: null }
+  } catch {
+    showToast('삭제됐거나 볼 수 없는 프롬프트예요', 'error')
+  }
 }
 
 onMounted(load)
@@ -157,6 +169,7 @@ async function logout() {
         </router-link>
         <span class="flex-1"></span>
         <ThemeToggle />
+        <NotificationBell @open-prompt="openPromptById" />
         <router-link
           to="/write"
           class="btn-grad rounded-lg px-3.5 py-1.5 text-sm font-semibold text-white"
