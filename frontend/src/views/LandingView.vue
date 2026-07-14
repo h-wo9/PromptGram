@@ -37,12 +37,6 @@ const FEED_PREVIEW = [
   { title: '하루 식단 설계', tag: '건강', likes: 61, copies: 98, comments: 9 },
 ]
 
-// 댓글 카메라 모션용 대화 데모
-const CMT_BUBBLES = [
-  { nick: '미나', time: '5분 전', text: "[톤]에 '유머러스하게'를 넣으니 결과가 확 달라져요!" },
-  { nick: '데모유저', time: '3분 전', text: '스크랩해두고 매주 꺼내 쓰는 중입니다.' },
-]
-
 // 카드 이미지 공유 섹션용 데모 프롬프트
 const SHARE_DEMO = {
   title: '코드 리뷰 요청 템플릿',
@@ -52,9 +46,6 @@ const SHARE_DEMO = {
   variables: ['언어', '관점', '코드'],
   author: { nickname: '데모유저' },
 }
-
-// 기능 키워드 marquee
-const MARQUEE = ['변수 템플릿', 'AI 다듬기', '태그 추천', '원클릭 복사', '무한 피드', '키워드 검색', '댓글', '팔로우', '프로필', '알림', '카드 이미지 공유', '라이트 모드']
 
 const galaxyFar = ref(null)
 const galaxyNear = ref(null)
@@ -133,9 +124,6 @@ const afterTyping = createTyping(
   ],
   { speed: 24, loop: true }
 )
-
-// 댓글 카메라 모션: 타이핑되는 새 댓글
-const cmtTyping = createTyping([{ t: 'Claude에서 특히 잘 먹히네요. 강추 ' }], { speed: 42 })
 
 function buildCards(count, layerSeed) {
   const cards = []
@@ -276,37 +264,12 @@ onMounted(() => {
       onEnter: () => searchTl.play(),
     })
 
-    // ── 댓글 카메라: 페이지 고정(pin) 상태에서 1회 자동 재생 ──
-    // 버블 등장 → 타이핑 지점으로 줌인 → 텍스트 타이핑 → 👍 pop → 줌아웃
-    gsap.set('.cmt-thumb', { scale: 0, transformOrigin: '50% 80%' })
-    const cmtTl = gsap.timeline({ paused: true })
-    cmtTl
-      .fromTo(
-        '.cmt-bubble',
-        { opacity: 0, y: 16 },
-        { opacity: 1, y: 0, stagger: 0.22, duration: 0.45, ease: 'back.out(1.6)' }
-      )
-      .to('.comment-stage', { scale: 1.5, yPercent: -8, transformOrigin: '50% 92%', duration: 0.9, ease: 'power2.inOut' }, '+=0.35')
-      .to('.comment-copy', { opacity: 0.12, duration: 0.6 }, '<') // 줌 동안 카피 디밍
-      .call(() => cmtTyping.start(250))
-      .to({}, { duration: 1.9 }) // 타이핑 재생 시간
-      .to('.cmt-thumb', { scale: 1.7, duration: 0.4, ease: 'back.out(2.5)' })
-      .to('.cmt-thumb', { scale: 1, duration: 0.55, ease: 'elastic.out(1.2, 0.5)' })
-      .to({}, { duration: 0.6 })
-      .to('.comment-stage', { scale: 1, yPercent: 0, duration: 0.9, ease: 'power2.inOut' })
-      .to('.comment-copy', { opacity: 1, duration: 0.6 }, '<')
-    let cmtPlayed = false
+    // 소셜 피드: 검색 데모가 재생되는 동안 잠시 머물도록 pin (스크롤 지연)
     ScrollTrigger.create({
-      trigger: '.comment-pin',
+      trigger: '.feed-pin',
       start: 'top top',
-      end: '+=120%',
+      end: '+=90%',
       pin: true,
-      onEnter: () => {
-        if (!cmtPlayed) {
-          cmtPlayed = true
-          cmtTl.play()
-        }
-      },
     })
 
     // ── 팔로우 모션그래픽 (Apple식 스크럽): 줌인 → 팔로워 카운트업 + 아바타 pop
@@ -315,12 +278,12 @@ onMounted(() => {
       scrollTrigger: { trigger: '.follow-pin', start: 'top top', end: '+=220%', scrub: 0.6, pin: true },
     })
     followTl
-      .to('.follow-stage', { scale: 1.55, xPercent: 8, yPercent: 14, transformOrigin: '22% 45%', ease: 'power1.inOut', duration: 1 }, 0.2)
+      .to('.follow-stage', { zoom: 1.5, x: -40, y: -60, ease: 'power1.inOut', duration: 1 }, 0.2)
       .fromTo('.follow-count', { textContent: 128 }, { textContent: 131, snap: { textContent: 1 }, duration: 1, ease: 'none' }, 1.0)
       .fromTo('.f-ava', { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, stagger: 0.22, ease: 'back.out(2)', duration: 0.35 }, 1.0)
       .to('.follow-btn-front', { opacity: 0, duration: 0.3 }, 1.8)
       .to('.follow-btn-back', { opacity: 1, duration: 0.3 }, 1.8)
-      .to('.follow-stage', { scale: 1, xPercent: 0, yPercent: 0, ease: 'power1.inOut', duration: 1 }, 2.4)
+      .to('.follow-stage', { zoom: 1, x: 0, y: 0, ease: 'power1.inOut', duration: 1 }, 2.4)
       .fromTo('.noti-demo', { autoAlpha: 0, y: 16, scale: 0.95 }, { autoAlpha: 1, y: 0, scale: 1, ease: 'back.out(1.7)', duration: 0.5 }, 3.2)
       .fromTo('.noti-dot', { scale: 0 }, { scale: 1, ease: 'back.out(3)', duration: 0.3 }, 3.6)
       .to({}, { duration: 0.5 })
@@ -490,17 +453,6 @@ function start() {
       </div>
     </section>
 
-    <!-- ── 기능 키워드 marquee (타이포 스트립) ── -->
-    <div class="marquee" aria-hidden="true">
-      <div class="marquee-track">
-        <template v-for="n in 2" :key="n">
-          <template v-for="w in MARQUEE" :key="n + w">
-            <span>{{ w }}</span><span class="sep">✦</span>
-          </template>
-        </template>
-      </div>
-    </div>
-
     <!-- ════ S2+S3. Pinned 전환: 변수 템플릿 → AI 다듬기 ════ -->
     <section class="pin-stage">
       <div class="slide slide-1">
@@ -583,7 +535,7 @@ function start() {
     </section>
 
     <!-- ════ S4. 소셜 피드 + 댓글 ════ -->
-    <section class="section section--tall overflow-hidden">
+    <section class="feed-pin section section--tall overflow-hidden">
       <span class="ghost-word ghost-word--center" data-ghost aria-hidden="true">COMMUNITY</span>
       <div class="relative z-[1] text-center max-w-2xl mx-auto px-6" data-reveal>
         <p class="eyebrow">소셜 피드 · 댓글</p>
@@ -624,10 +576,10 @@ function start() {
       </div>
     </section>
 
-    <!-- ════ S4b. 댓글 — 카메라 모션 (pin 고정 + 자동 재생) ════ -->
-    <section class="comment-pin section--tall overflow-hidden">
+    <!-- ════ S4b. 댓글 (정적) ════ -->
+    <section class="section overflow-hidden">
       <span class="ghost-word ghost-word--center" data-ghost aria-hidden="true">REPLY</span>
-      <div class="comment-copy relative z-[1] text-center max-w-2xl mx-auto px-6">
+      <div class="relative z-[1] text-center max-w-2xl mx-auto px-6" data-reveal>
         <p class="eyebrow eyebrow--violet">댓글</p>
         <h2 class="headline">프롬프트에,<br /><span class="grad-text">대화가 달립니다.</span></h2>
         <p class="body-copy mx-auto">
@@ -636,31 +588,33 @@ function start() {
         </p>
       </div>
 
-      <div class="relative z-[1] mt-12 max-w-md w-full mx-auto px-6">
-        <div class="comment-stage space-y-3">
-          <div v-for="c in CMT_BUBBLES" :key="c.nick" class="bubble cmt-bubble">
-            <div class="bubble-avatar">{{ c.nick[0] }}</div>
-            <div class="min-w-0">
-              <p class="text-[11px] text-gray-500">
-                <span class="font-semibold text-gray-300">{{ c.nick }}</span> · {{ c.time }}
-              </p>
-              <p class="mt-0.5 text-[13px] text-gray-200">{{ c.text }}</p>
-            </div>
+      <div class="relative z-[1] mt-12 max-w-md w-full mx-auto px-6 space-y-3" data-reveal>
+        <div class="bubble">
+          <div class="bubble-avatar">미</div>
+          <div class="min-w-0">
+            <p class="text-[11px] text-gray-500">
+              <span class="font-semibold text-gray-300">미나</span> · 5분 전
+            </p>
+            <p class="mt-0.5 text-[13px] text-gray-200">[톤]에 '유머러스하게'를 넣으니 결과가 확 달라져요!</p>
           </div>
-          <div class="bubble cmt-bubble">
-            <div class="bubble-avatar">개</div>
-            <div class="min-w-0">
-              <p class="text-[11px] text-gray-500">
-                <span class="font-semibold text-gray-300">개발자킴</span> · 방금 전
-              </p>
-              <p class="mt-0.5 text-[13px] text-gray-200 min-h-[1.4em]">
-                <template v-for="(seg, i) in cmtTyping.rendered.value" :key="i">{{ seg.text }}</template><span
-                  v-if="!cmtTyping.done.value"
-                  class="type-caret"
-                  aria-hidden="true"
-                ></span><span class="cmt-thumb inline-block">👍</span>
-              </p>
-            </div>
+        </div>
+        <div class="bubble">
+          <div class="bubble-avatar">데</div>
+          <div class="min-w-0">
+            <p class="text-[11px] text-gray-500">
+              <span class="font-semibold text-gray-300">데모유저</span> · 3분 전
+            </p>
+            <p class="mt-0.5 text-[13px] text-gray-200">스크랩해두고 매주 꺼내 쓰는 중입니다.</p>
+          </div>
+        </div>
+        <div class="bubble">
+          <div class="bubble-avatar">개</div>
+          <div class="min-w-0">
+            <p class="text-[11px] text-gray-500">
+              <span class="font-semibold text-gray-300">개발자킴</span> · 방금 전
+              <span class="text-gray-600">(수정됨)</span>
+            </p>
+            <p class="mt-0.5 text-[13px] text-gray-200">Claude에서 특히 잘 먹히네요. 강추 👍</p>
           </div>
         </div>
       </div>
@@ -822,39 +776,6 @@ div.hero-rise {
   }
 }
 
-/* ── 기능 키워드 marquee ── */
-.marquee {
-  position: relative;
-  overflow: hidden;
-  padding: 1.15rem 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-}
-.marquee-track {
-  display: flex;
-  align-items: center;
-  gap: 2.2rem;
-  width: max-content;
-  animation: marquee 30s linear infinite;
-  will-change: transform;
-}
-.marquee-track span {
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  color: #64748b;
-  white-space: nowrap;
-}
-.marquee-track .sep {
-  color: #3b96ff;
-  font-size: 0.6rem;
-}
-@keyframes marquee {
-  to {
-    transform: translateX(-50%);
-  }
-}
-
 /* ── 초대형 ghost 타이포 (섹션 배경 워드마크) ── */
 .ghost-word {
   position: absolute;
@@ -876,13 +797,9 @@ div.hero-rise {
   top: 4%;
 }
 
-/* ── 카메라 스테이지 (댓글·팔로우 모션) ── */
-.comment-stage,
+/* ── 팔로우 모션 스테이지 (zoom은 레이아웃 스케일이라 텍스트가 선명하게 유지됨) ── */
 .follow-stage {
-  will-change: transform;
-}
-.cmt-thumb {
-  margin-left: 2px;
+  position: relative;
 }
 .f-ava {
   width: 1.5rem;
@@ -1248,8 +1165,7 @@ div.hero-rise {
   .demo-var,
   .cta-orb,
   .animate-bounce-slow,
-  .type-caret,
-  .marquee-track {
+  .type-caret {
     animation: none;
   }
   .hero-rise {
