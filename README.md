@@ -13,6 +13,14 @@ AI 프롬프트를 카드로 아카이빙하고 태그로 모아보며 공유하
 
 ## 실행 방법
 
+### 빠른 실행
+
+```bash
+docker compose up -d   # DB
+./dev.sh               # backend + frontend 동시 실행 (Ctrl+C로 종료)
+```
+
+
 ### 1. Database (PostgreSQL)
 
 ```bash
