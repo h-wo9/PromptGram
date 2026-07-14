@@ -3,10 +3,11 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { TextPlugin } from 'gsap/TextPlugin'
 import { lockScroll } from '../composables/scrollLock'
 import ShareCard from '../components/ShareCard.vue'
 
-gsap.registerPlugin(ScrollTrigger)
+gsap.registerPlugin(ScrollTrigger, TextPlugin)
 
 const router = useRouter()
 
@@ -36,11 +37,10 @@ const FEED_PREVIEW = [
   { title: '하루 식단 설계', tag: '건강', likes: 61, copies: 98, comments: 9 },
 ]
 
-// 커뮤니티 섹션 댓글 버블 데모
-const COMMENTS_DEMO = [
-  { nick: '미나', time: '방금 전', text: "[톤]에 '유머러스하게'를 넣으니 결과가 확 달라져요!", edited: false },
-  { nick: '개발자킴', time: '5분 전', text: 'Claude에서 특히 잘 먹히네요. 강추 👍', edited: true },
-  { nick: '데모유저', time: '1시간 전', text: '스크랩해두고 매주 꺼내 쓰는 중입니다.', edited: false },
+// 댓글 카메라 모션용 대화 데모
+const CMT_BUBBLES = [
+  { nick: '미나', time: '5분 전', text: "[톤]에 '유머러스하게'를 넣으니 결과가 확 달라져요!" },
+  { nick: '데모유저', time: '3분 전', text: '스크랩해두고 매주 꺼내 쓰는 중입니다.' },
 ]
 
 // 카드 이미지 공유 섹션용 데모 프롬프트
@@ -54,7 +54,7 @@ const SHARE_DEMO = {
 }
 
 // 기능 키워드 marquee
-const MARQUEE = ['변수 템플릿', 'AI 다듬기', '태그 추천', '원클릭 복사', '무한 피드', '댓글', '카드 이미지 공유', '좋아요 & 스크랩', '라이트 모드']
+const MARQUEE = ['변수 템플릿', 'AI 다듬기', '태그 추천', '원클릭 복사', '무한 피드', '키워드 검색', '댓글', '팔로우', '프로필', '알림', '카드 이미지 공유', '라이트 모드']
 
 const galaxyFar = ref(null)
 const galaxyNear = ref(null)
@@ -133,6 +133,9 @@ const afterTyping = createTyping(
   ],
   { speed: 24, loop: true }
 )
+
+// 댓글 카메라 모션: 타이핑되는 새 댓글
+const cmtTyping = createTyping([{ t: 'Claude에서 특히 잘 먹히네요. 강추 ' }], { speed: 42 })
 
 function buildCards(count, layerSeed) {
   const cards = []
@@ -256,22 +259,71 @@ onMounted(() => {
       )
     })
 
-    // 댓글 버블: 대화가 이어지듯 순서대로 pop-in
-    gsap.utils.toArray('[data-pop-group]').forEach((group) => {
-      gsap.fromTo(
-        group.children,
-        { opacity: 0, y: 16, scale: 0.96 },
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.5,
-          ease: 'back.out(1.7)',
-          stagger: 0.16,
-          scrollTrigger: { trigger: group, start: 'top 82%', once: true },
-        }
-      )
+    // ── 검색 데모: 키워드가 타이핑되면 매칭 카드만 남고 나머지는 흐려짐 (반복) ──
+    const searchTl = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 1.6 })
+    searchTl
+      .set('.search-demo-text', { text: '' })
+      .to('.search-demo-text', { text: '면접', duration: 0.7, ease: 'none' }, 0.4)
+      .to('.mini-card:not(.search-match)', { opacity: 0.2, scale: 0.97, duration: 0.45, ease: 'power1.out' }, 1.2)
+      .to('.search-match', { borderColor: 'rgba(0,112,243,0.65)', boxShadow: '0 0 26px rgba(0,112,243,0.28)', scale: 1.04, duration: 0.45 }, 1.2)
+      .to({}, { duration: 1.5 })
+      .to('.mini-card', { opacity: 1, scale: 1, boxShadow: '0 0 0 rgba(0,0,0,0)', borderColor: 'rgba(255,255,255,0.1)', duration: 0.5 })
+      .to('.search-demo-text', { text: '', duration: 0.25 }, '<')
+    ScrollTrigger.create({
+      trigger: '.search-demo',
+      start: 'top 78%',
+      once: true,
+      onEnter: () => searchTl.play(),
     })
+
+    // ── 댓글 카메라: 페이지 고정(pin) 상태에서 1회 자동 재생 ──
+    // 버블 등장 → 타이핑 지점으로 줌인 → 텍스트 타이핑 → 👍 pop → 줌아웃
+    gsap.set('.cmt-thumb', { scale: 0, transformOrigin: '50% 80%' })
+    const cmtTl = gsap.timeline({ paused: true })
+    cmtTl
+      .fromTo(
+        '.cmt-bubble',
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, stagger: 0.22, duration: 0.45, ease: 'back.out(1.6)' }
+      )
+      .to('.comment-stage', { scale: 1.5, yPercent: -8, transformOrigin: '50% 92%', duration: 0.9, ease: 'power2.inOut' }, '+=0.35')
+      .to('.comment-copy', { opacity: 0.12, duration: 0.6 }, '<') // 줌 동안 카피 디밍
+      .call(() => cmtTyping.start(250))
+      .to({}, { duration: 1.9 }) // 타이핑 재생 시간
+      .to('.cmt-thumb', { scale: 1.7, duration: 0.4, ease: 'back.out(2.5)' })
+      .to('.cmt-thumb', { scale: 1, duration: 0.55, ease: 'elastic.out(1.2, 0.5)' })
+      .to({}, { duration: 0.6 })
+      .to('.comment-stage', { scale: 1, yPercent: 0, duration: 0.9, ease: 'power2.inOut' })
+      .to('.comment-copy', { opacity: 1, duration: 0.6 }, '<')
+    let cmtPlayed = false
+    ScrollTrigger.create({
+      trigger: '.comment-pin',
+      start: 'top top',
+      end: '+=120%',
+      pin: true,
+      onEnter: () => {
+        if (!cmtPlayed) {
+          cmtPlayed = true
+          cmtTl.play()
+        }
+      },
+    })
+
+    // ── 팔로우 모션그래픽 (Apple식 스크럽): 줌인 → 팔로워 카운트업 + 아바타 pop
+    //    → 팔로우 버튼 전환 → 줌아웃 → 알림 도착 ──
+    const followTl = gsap.timeline({
+      scrollTrigger: { trigger: '.follow-pin', start: 'top top', end: '+=220%', scrub: 0.6, pin: true },
+    })
+    followTl
+      .to('.follow-stage', { scale: 1.55, xPercent: 8, yPercent: 14, transformOrigin: '22% 45%', ease: 'power1.inOut', duration: 1 }, 0.2)
+      .fromTo('.follow-count', { textContent: 128 }, { textContent: 131, snap: { textContent: 1 }, duration: 1, ease: 'none' }, 1.0)
+      .fromTo('.f-ava', { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, stagger: 0.22, ease: 'back.out(2)', duration: 0.35 }, 1.0)
+      .to('.follow-btn-front', { opacity: 0, duration: 0.3 }, 1.8)
+      .to('.follow-btn-back', { opacity: 1, duration: 0.3 }, 1.8)
+      .to('.follow-stage', { scale: 1, xPercent: 0, yPercent: 0, ease: 'power1.inOut', duration: 1 }, 2.4)
+      .fromTo('.noti-demo', { autoAlpha: 0, y: 16, scale: 0.95 }, { autoAlpha: 1, y: 0, scale: 1, ease: 'back.out(1.7)', duration: 0.5 }, 3.2)
+      .fromTo('.noti-dot', { scale: 0 }, { scale: 1, ease: 'back.out(3)', duration: 0.3 }, 3.6)
+      .to({}, { duration: 0.5 })
 
     // 초대형 ghost 타이포: 스크롤에 따라 가로로 흐름
     gsap.utils.toArray('[data-ghost]').forEach((el) => {
@@ -537,10 +589,20 @@ function start() {
         <p class="eyebrow">소셜 피드 · 댓글</p>
         <h2 class="headline">검증된 프롬프트가 흐르고,<br /><span class="grad-text">대화가 이어지는 곳.</span></h2>
         <p class="body-copy mx-auto">
-          좋아요와 스크랩으로 커뮤니티가 골라낸 프롬프트를 무한 피드로 만나고,
-          마음에 들면 원클릭 복사. 궁금한 건 댓글로 물어보세요 —
-          더 나은 사용법이 돌아옵니다.
+          좋아요와 스크랩으로 커뮤니티가 골라낸 프롬프트를 무한 피드로.
+          카드를 누르면 확대되는 상세 화면에서 바로 원클릭 복사 —
+          <strong class="text-gray-200">#태그와 키워드 검색</strong>으로 원하는 프롬프트를 즉시 찾으세요.
         </p>
+      </div>
+
+      <!-- 검색 데모: 타이핑되면 매칭 카드만 남음 -->
+      <div class="relative z-[1] mt-10 max-w-xs mx-auto px-6">
+        <div class="search-demo flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm">
+          <svg class="w-4 h-4 text-gray-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+          <span class="search-demo-text text-gray-200"></span><span class="type-caret" aria-hidden="true"></span>
+        </div>
       </div>
 
       <div class="relative z-[1] mt-14 grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-4xl mx-auto px-6" data-reveal>
@@ -548,6 +610,7 @@ function start() {
           v-for="(card, i) in FEED_PREVIEW"
           :key="card.title"
           class="mini-card"
+          :class="{ 'search-match': card.title.includes('면접') }"
           :data-parallax="[6, 14, 9][i % 3]"
         >
           <p class="text-[13px] font-bold leading-snug">{{ card.title }}</p>
@@ -559,18 +622,100 @@ function start() {
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- 댓글 버블: 순서대로 pop-in -->
-      <div class="relative z-[1] mt-12 max-w-md mx-auto px-6 space-y-3" data-pop-group>
-        <div v-for="c in COMMENTS_DEMO" :key="c.nick" class="bubble">
-          <div class="bubble-avatar">{{ c.nick[0] }}</div>
-          <div class="min-w-0">
-            <p class="text-[11px] text-gray-500 light:text-slate-400">
-              <span class="font-semibold text-gray-300 light:text-slate-600">{{ c.nick }}</span>
-              · {{ c.time }}
-              <span v-if="c.edited" class="text-gray-600 light:text-slate-400">(수정됨)</span>
-            </p>
-            <p class="mt-0.5 text-[13px] text-gray-200 light:text-slate-700">{{ c.text }}</p>
+    <!-- ════ S4b. 댓글 — 카메라 모션 (pin 고정 + 자동 재생) ════ -->
+    <section class="comment-pin section--tall overflow-hidden">
+      <span class="ghost-word ghost-word--center" data-ghost aria-hidden="true">REPLY</span>
+      <div class="comment-copy relative z-[1] text-center max-w-2xl mx-auto px-6">
+        <p class="eyebrow eyebrow--violet">댓글</p>
+        <h2 class="headline">프롬프트에,<br /><span class="grad-text">대화가 달립니다.</span></h2>
+        <p class="body-copy mx-auto">
+          궁금한 사용법은 댓글로 묻고, 발견한 꿀팁은 나누세요.
+          좋은 프롬프트는 대화 속에서 더 좋아집니다.
+        </p>
+      </div>
+
+      <div class="relative z-[1] mt-12 max-w-md w-full mx-auto px-6">
+        <div class="comment-stage space-y-3">
+          <div v-for="c in CMT_BUBBLES" :key="c.nick" class="bubble cmt-bubble">
+            <div class="bubble-avatar">{{ c.nick[0] }}</div>
+            <div class="min-w-0">
+              <p class="text-[11px] text-gray-500">
+                <span class="font-semibold text-gray-300">{{ c.nick }}</span> · {{ c.time }}
+              </p>
+              <p class="mt-0.5 text-[13px] text-gray-200">{{ c.text }}</p>
+            </div>
+          </div>
+          <div class="bubble cmt-bubble">
+            <div class="bubble-avatar">개</div>
+            <div class="min-w-0">
+              <p class="text-[11px] text-gray-500">
+                <span class="font-semibold text-gray-300">개발자킴</span> · 방금 전
+              </p>
+              <p class="mt-0.5 text-[13px] text-gray-200 min-h-[1.4em]">
+                <template v-for="(seg, i) in cmtTyping.rendered.value" :key="i">{{ seg.text }}</template><span
+                  v-if="!cmtTyping.done.value"
+                  class="type-caret"
+                  aria-hidden="true"
+                ></span><span class="cmt-thumb inline-block">👍</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ S4c. 프로필 · 팔로우 · 알림 — 모션그래픽 (pin + scrub) ════ -->
+    <section class="follow-pin section--tall overflow-hidden">
+      <span class="ghost-word ghost-word--center" data-ghost aria-hidden="true">FOLLOW</span>
+      <div class="section-inner">
+        <div>
+          <p class="eyebrow">프로필 · 팔로우 · 알림</p>
+          <h2 class="headline">마음에 드는 작가를,<br /><span class="grad-text">팔로우하세요.</span></h2>
+          <p class="body-copy">
+            프로필에서 그 사람의 공개 프롬프트를 모아 보고, 팔로우하면
+            새 프롬프트 소식이 <strong class="text-gray-200">알림</strong>으로 도착합니다.
+            좋은 프롬프트를 쓰면 — 팔로워가 먼저 알아봅니다.
+          </p>
+        </div>
+
+        <div class="demo-wrap">
+          <div class="demo-glow" aria-hidden="true"></div>
+          <div class="follow-stage">
+            <div class="demo-card">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center text-lg font-bold text-white shadow-[0_0_18px_rgba(80,90,245,0.4)]">데</div>
+                <div class="min-w-0">
+                  <p class="font-bold">데모유저</p>
+                  <p class="text-xs text-gray-500">매주 쓰는 프롬프트만 올립니다</p>
+                </div>
+              </div>
+              <div class="mt-4 flex items-center gap-3 text-sm">
+                <span class="text-gray-400">팔로워 <strong class="follow-count text-accent">128</strong></span>
+                <span class="flex -space-x-1.5">
+                  <span class="f-ava">미</span>
+                  <span class="f-ava">개</span>
+                  <span class="f-ava">준</span>
+                </span>
+                <span class="relative ml-auto">
+                  <span class="follow-btn-front btn-grad inline-block rounded-lg px-4 py-1.5 text-xs font-semibold text-white">팔로우</span>
+                  <span class="follow-btn-back absolute inset-0 rounded-lg border border-white/25 text-gray-300 text-xs font-semibold flex items-center justify-center opacity-0">팔로잉</span>
+                </span>
+              </div>
+            </div>
+            <div class="noti-demo bubble mt-3 items-center">
+              <span class="relative shrink-0 text-gray-300">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                </svg>
+                <span class="noti-dot absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500"></span>
+              </span>
+              <p class="text-[13px] text-gray-200">
+                <span class="font-semibold">미나</span>님이 회원님을 팔로우했어요
+                <span class="text-[11px] text-gray-500">· 방금 전</span>
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -729,6 +874,33 @@ div.hero-rise {
 }
 .ghost-word--center {
   top: 4%;
+}
+
+/* ── 카메라 스테이지 (댓글·팔로우 모션) ── */
+.comment-stage,
+.follow-stage {
+  will-change: transform;
+}
+.cmt-thumb {
+  margin-left: 2px;
+}
+.f-ava {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fff;
+  border: 2px solid #14141c;
+}
+.f-ava:nth-child(1) { background: linear-gradient(135deg, #0070f3, #7c3aed); }
+.f-ava:nth-child(2) { background: linear-gradient(135deg, #7c3aed, #ec4899); }
+.f-ava:nth-child(3) { background: linear-gradient(135deg, #06b6d4, #0070f3); }
+.search-demo-text {
+  min-height: 1.25em;
 }
 
 /* ── 댓글 버블 ── */
