@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import CurrentUser, DbDep, OptionalUser
@@ -8,6 +10,8 @@ from app.crud import prompt as prompt_crud
 from app.crud import user as user_crud
 from app.schemas.prompt import AuthorOut, PromptOut
 from app.schemas.user import FollowToggleOut, UserOut, UserProfileOut, UserUpdate
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -90,9 +94,13 @@ async def follow_user(user_id: int, user: CurrentUser, db: DbDep):
     await _get_user_or_404(db, user_id)
     is_following = await follow_crud.toggle(db, user.id, user_id)
     if is_following:
-        # 알림: 누가 당신을 팔로우했어요
-        notification_crud.add(db, user_id=user_id, actor_id=user.id, type="follow")
-        await db.commit()
+        # 알림: 누가 당신을 팔로우했어요 (best-effort — 실패해도 팔로우는 유지)
+        try:
+            notification_crud.add(db, user_id=user_id, actor_id=user.id, type="follow")
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            logger.warning("follow notification failed", exc_info=True)
     followers, _ = await follow_crud.counts(db, user_id)
     return FollowToggleOut(is_following=is_following, follower_count=followers)
 

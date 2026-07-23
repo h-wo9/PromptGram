@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173"
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3-flash-preview"
+    # AI rate limit·캐시 저장소. 미설정 시 in-memory fallback (단일 프로세스 한정,
+    # 재시작 시 초기화 — 로컬/테스트용). 멀티 워커·재시작 유지가 필요하면 설정.
+    REDIS_URL: str = ""
 
     @property
     def cors_origins_list(self) -> list[str]:

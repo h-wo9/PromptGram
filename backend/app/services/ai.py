@@ -1,24 +1,48 @@
 import hashlib
 import json
+import logging
 import time
 from collections import OrderedDict, deque
 
 from fastapi import HTTPException, status
 
+from app.core.config import settings
 from app.services.llm import LLMProvider
 
-# ── 응답 캐싱: 동일 입력 재호출 방지 (in-memory, FIFO 상한) ──
-_CACHE_MAX = 512
-_cache: OrderedDict[str, dict] = OrderedDict()
+logger = logging.getLogger(__name__)
 
-# ── per-user rate limit: sliding window ──
 RATE_LIMIT_CALLS = 5
 RATE_LIMIT_WINDOW_SEC = 60
+CACHE_TTL_SEC = 60 * 60 * 24
+
+# ── in-memory fallback (REDIS_URL 미설정 또는 Redis 장애 시) ──
+# 단일 프로세스 한정·재시작 시 초기화되므로 프로덕션은 Redis 사용 권장.
+_CACHE_MAX = 512
+_cache: OrderedDict[str, dict] = OrderedDict()
 _calls: dict[int, deque] = {}
+
+_redis = None
+
+
+def _get_redis():
+    """REDIS_URL이 있으면 lazy 싱글턴 client. 없으면 None (in-memory 경로)."""
+    global _redis
+    if not settings.REDIS_URL:
+        return None
+    if _redis is None:
+        import redis.asyncio as aioredis
+
+        _redis = aioredis.from_url(
+            settings.REDIS_URL,
+            decode_responses=True,
+            socket_connect_timeout=2,
+            socket_timeout=2,
+        )
+    return _redis
 
 
 def reset_state() -> None:
-    """테스트용: 캐시·rate limit 초기화."""
+    """테스트용: in-memory 캐시·rate limit 초기화."""
     _cache.clear()
     _calls.clear()
 
@@ -27,17 +51,67 @@ def _cache_key(task: str, text: str) -> str:
     return hashlib.sha256(f"{task}:{text}".encode()).hexdigest()
 
 
-def check_rate_limit(user_id: int) -> None:
+def _rate_limit_exc() -> HTTPException:
+    return HTTPException(
+        status.HTTP_429_TOO_MANY_REQUESTS,
+        f"AI 요청이 너무 잦아요. {RATE_LIMIT_WINDOW_SEC}초에 {RATE_LIMIT_CALLS}회까지 가능해요.",
+    )
+
+
+def _check_rate_limit_memory(user_id: int) -> None:
     now = time.monotonic()
     window = _calls.setdefault(user_id, deque())
     while window and now - window[0] > RATE_LIMIT_WINDOW_SEC:
         window.popleft()
     if len(window) >= RATE_LIMIT_CALLS:
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS,
-            f"AI 요청이 너무 잦아요. {RATE_LIMIT_WINDOW_SEC}초에 {RATE_LIMIT_CALLS}회까지 가능해요.",
-        )
+        raise _rate_limit_exc()
     window.append(now)
+
+
+async def check_rate_limit(user_id: int) -> None:
+    """Redis 고정 윈도우(INCR+EXPIRE) — 재시작·멀티 워커에서도 유지.
+    Redis 장애 시 fail-open으로 in-memory fallback (요청 자체는 막지 않음)."""
+    r = _get_redis()
+    if r is not None:
+        key = f"ai:rl:{user_id}"
+        try:
+            count = await r.incr(key)
+            # nx=True: TTL 없는 키에만 설정 — EXPIRE 유실로 인한 영구 차단 자가치유
+            await r.expire(key, RATE_LIMIT_WINDOW_SEC, nx=True)
+            if count > RATE_LIMIT_CALLS:
+                raise _rate_limit_exc()
+            return
+        except HTTPException:
+            raise
+        except Exception:
+            logger.warning("Redis rate limit unavailable — in-memory fallback", exc_info=True)
+    _check_rate_limit_memory(user_id)
+
+
+async def _cache_get(key: str) -> dict | None:
+    r = _get_redis()
+    if r is not None:
+        try:
+            raw = await r.get(f"ai:cache:{key}")
+            return json.loads(raw) if raw else None
+        except Exception:
+            logger.warning("Redis cache get failed — in-memory fallback", exc_info=True)
+    return _cache.get(key)
+
+
+async def _cache_set(key: str, value: dict) -> None:
+    r = _get_redis()
+    if r is not None:
+        try:
+            await r.setex(
+                f"ai:cache:{key}", CACHE_TTL_SEC, json.dumps(value, ensure_ascii=False)
+            )
+            return
+        except Exception:
+            logger.warning("Redis cache set failed — in-memory fallback", exc_info=True)
+    _cache[key] = value
+    if len(_cache) > _CACHE_MAX:
+        _cache.popitem(last=False)
 
 
 def _parse_json(raw: str) -> dict:
@@ -72,13 +146,12 @@ SUGGEST_TAGS_PROMPT = """아래 AI 프롬프트의 내용을 분석해 한국어
 
 async def _cached_call(provider: LLMProvider, task: str, template: str, text: str) -> dict:
     key = _cache_key(task, text)
-    if key in _cache:
-        return {**_cache[key], "cached": True}
+    cached = await _cache_get(key)
+    if cached is not None:
+        return {**cached, "cached": True}
     raw = await provider.generate(template.format(text=text))
     result = _parse_json(raw)
-    _cache[key] = result
-    if len(_cache) > _CACHE_MAX:
-        _cache.popitem(last=False)
+    await _cache_set(key, result)
     return {**result, "cached": False}
 
 

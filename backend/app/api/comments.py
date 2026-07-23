@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import CurrentUser, DbDep, OptionalUser
@@ -6,6 +8,8 @@ from app.crud import comment as comment_crud
 from app.crud import notification as notification_crud
 from app.models import Comment, User
 from app.schemas.comment import CommentIn, CommentOut
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["comments"])
 
@@ -26,16 +30,20 @@ async def create_comment(prompt_id: int, body: CommentIn, user: CurrentUser, db:
     comment = await comment_crud.create(
         db, prompt_id=prompt_id, user_id=user.id, content=body.content
     )
-    # 알림: 내 글에 댓글이 달렸어요 (본인 댓글은 제외)
+    # 알림: 내 글에 댓글이 달렸어요 (본인 댓글 제외, best-effort — 실패해도 댓글은 유지)
     if prompt.user_id != user.id:
-        notification_crud.add(
-            db,
-            user_id=prompt.user_id,
-            actor_id=user.id,
-            type="comment",
-            prompt_id=prompt_id,
-        )
-        await db.commit()
+        try:
+            notification_crud.add(
+                db,
+                user_id=prompt.user_id,
+                actor_id=user.id,
+                type="comment",
+                prompt_id=prompt_id,
+            )
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            logger.warning("comment notification failed", exc_info=True)
     return comment
 
 

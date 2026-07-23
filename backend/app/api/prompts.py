@@ -1,3 +1,4 @@
+import logging
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -10,6 +11,8 @@ from app.models import Prompt, User
 from app.schemas.prompt import FeedOut, PromptCreate, PromptOut, PromptUpdate
 from app.services.feed_cursor import decode_cursor, encode_cursor
 from app.services.variables import parse_variables
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/prompts", tags=["prompts"])
 
@@ -62,19 +65,24 @@ async def create_prompt(body: PromptCreate, user: CurrentUser, db: DbDep):
         is_public=body.is_public,
         tag_names=body.tags,
     )
-    # 알림: 팔로워들에게 새 공개 프롬프트 소식 (비공개는 제외)
+    # 알림: 팔로워들에게 새 공개 프롬프트 소식 (비공개는 제외).
+    # best-effort — 프롬프트는 이미 커밋됐으므로 알림 실패가 작성 성공을 뒤집지 않게 분리.
     if prompt.is_public:
-        followers = await follow_crud.followers_of(db, user.id)
-        for follower in followers:
-            notification_crud.add(
-                db,
-                user_id=follower.id,
-                actor_id=user.id,
-                type="new_prompt",
-                prompt_id=prompt.id,
-            )
-        if followers:
-            await db.commit()
+        try:
+            followers = await follow_crud.followers_of(db, user.id)
+            for follower in followers:
+                notification_crud.add(
+                    db,
+                    user_id=follower.id,
+                    actor_id=user.id,
+                    type="new_prompt",
+                    prompt_id=prompt.id,
+                )
+            if followers:
+                await db.commit()
+        except Exception:
+            await db.rollback()
+            logger.warning("follower notification fan-out failed", exc_info=True)
     return to_prompt_out(prompt)
 
 

@@ -54,15 +54,16 @@ AI 프롬프트를 카드로 아카이빙하고 태그로 모아보며 공유·�
 - **비정규화 & 인덱스** — `like_count`/`bookmark_count`/`copy_count` 카운터 컬럼 + 목적별 인덱스(cursor·인기순·태그·트라이그램)
 - **한국어 검색** — tsvector는 조사 등 형태소 문제로 부적합 → `pg_trgm` GIN 인덱스로 ILIKE 부분 검색 가속
 - **낙관적 UI** — 좋아요/스크랩 즉시 반영 후 서버 동기화, 실패 시 롤백
-- **AI 비용 관리** — 동일 입력 응답 캐싱, 사용자별 rate limit(60초 5회), 429 backoff, 60s timeout
-- **모든 스키마 변경은 Alembic migration**, 핵심 경로 pytest + Playwright E2E로 검증
+- **AI 비용 관리** — 동일 입력 응답 캐싱 + 사용자별 rate limit(60초 5회)을 **Redis**에 저장(재시작·멀티 워커에서도 유지, 미설정 시 in-memory fallback), 429 backoff, 60s timeout
+- **동시성 안전** — 좋아요/스크랩/복사/팔로우는 원자적 counter UPDATE + savepoint(`begin_nested`)로 중복 요청 레이스를 흡수, 태그 동시 생성은 unique 충돌 시 재조회. 알림 fan-out은 best-effort로 분리(실패해도 본 동작 유지)
+- **모든 스키마 변경은 Alembic migration**, 핵심 경로 pytest + Playwright E2E로 검증, push/PR마다 GitHub Actions CI(backend pytest + frontend build)
 
 ## 실행 방법
 
 ### 빠른 실행
 
 ```bash
-docker compose up -d   # DB
+docker compose up -d   # DB + Redis
 ./dev.sh               # backend + frontend 동시 실행 (Ctrl+C로 종료)
 ```
 
@@ -91,6 +92,7 @@ uvicorn app.main:app --reload --port 8000
 
 - API: http://localhost:8000 (docs: `/docs`)
 - AI 기능(`/ai/*`)은 `.env`의 `GEMINI_API_KEY` 필요
+- `REDIS_URL` 설정 시 AI rate limit·캐시가 Redis에 저장됨 (미설정 시 in-memory fallback — 재시작하면 초기화)
 
 ### 3. Frontend
 
@@ -126,6 +128,7 @@ cd backend && .venv/bin/pytest
   - `JWT_SECRET_KEY` — `openssl rand -hex 32` 등으로 생성한 랜덤 값
   - `CORS_ORIGINS` — Vercel 프론트 URL (예: `https://promptgram.vercel.app`)
   - `GEMINI_API_KEY`, `GEMINI_MODEL=gemini-3-flash-preview`
+  - `REDIS_URL` — (권장) Upstash/Render Key Value 등 managed Redis URL. 미설정 시 AI rate limit·캐시가 인스턴스 메모리에만 유지됨
 - Python 버전은 `backend/.python-version`(3.12)을 자동 인식
 
 ### Frontend — Vercel

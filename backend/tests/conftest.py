@@ -2,8 +2,18 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.core.config import settings
 from app.core.db import Base, get_db
 from app.main import app
+from app.services import ai as ai_service
+
+
+@pytest.fixture(autouse=True)
+def _force_inmemory_ai(monkeypatch):
+    """테스트는 항상 in-memory 경로 — 로컬 .env의 REDIS_URL이 있어도
+    실제 Redis에 rate limit·캐시가 남아 테스트 간 오염되는 것을 방지."""
+    monkeypatch.setattr(settings, "REDIS_URL", "")
+    monkeypatch.setattr(ai_service, "_redis", None)
 
 
 @pytest.fixture
