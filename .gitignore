@@ -20,3 +20,4 @@ dist/
 
 # CLAUDE
 .CLAUDE/
+CLAUDE.md

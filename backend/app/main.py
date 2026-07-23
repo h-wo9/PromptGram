@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import ai, auth, comments, notifications, prompts, users
 from app.core.config import settings
+from app.services import ai as ai_service
 
 app = FastAPI(title="PromptGram API")
 
@@ -25,4 +26,4 @@ app.add_middleware(
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "redis": await ai_service.redis_status()}

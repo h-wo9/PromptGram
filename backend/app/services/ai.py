@@ -47,6 +47,18 @@ def reset_state() -> None:
     _calls.clear()
 
 
+async def redis_status() -> str:
+    """/health용 연결 상태: ok(연결됨) / off(REDIS_URL 미설정 — in-memory) / error(연결 실패)."""
+    r = _get_redis()
+    if r is None:
+        return "off"
+    try:
+        await r.ping()
+        return "ok"
+    except Exception:
+        return "error"
+
+
 def _cache_key(task: str, text: str) -> str:
     return hashlib.sha256(f"{task}:{text}".encode()).hexdigest()
 
