@@ -310,11 +310,22 @@ function goProfile(userId) {
         <ul v-else-if="comments.length" class="mt-4 space-y-4">
           <li v-for="c in comments" :key="c.id" class="flex gap-2.5">
             <button
-              class="w-7 h-7 shrink-0 rounded-full bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center text-[11px] font-bold text-white"
+              class="w-7 h-7 shrink-0 rounded-full overflow-hidden"
               :aria-label="`${c.author.nickname} 프로필 보기`"
               @click="goProfile(c.author.id)"
             >
-              {{ c.author.nickname[0] }}
+              <img
+                v-if="c.author.profile_image_url"
+                :src="c.author.profile_image_url"
+                alt=""
+                class="w-full h-full object-cover"
+              />
+              <span
+                v-else
+                class="w-full h-full bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center text-[11px] font-bold text-white"
+              >
+                {{ c.author.nickname[0] }}
+              </span>
             </button>
             <div class="min-w-0 flex-1">
               <p class="text-xs text-gray-400 light:text-slate-500">
